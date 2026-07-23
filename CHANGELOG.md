@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Command-line interface**: `--enviar` (send for real; the default still only simulates),
+- **Command-line interface**: `--send` (send for real; the default still only simulates),
   `--config PATH`, `--output PATH` and `--version`. Three equivalent entry points:
   `python main.py`, `python -m invisible_friend` and the `invisible-friend` console script.
 - `src/invisible_friend/__main__.py` hosting `InvisibleFriendApp`, `parse_args()` and `main()`;
@@ -18,10 +18,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test coverage for the four previously untested modules — `config.py`, `models.py`,
   `utils/file_handler.py` and `templates/email_template.py` — plus `tests/conftest.py` with the
   shared fixtures and `tests/test_main.py` pinning that the default run never sends email.
-  The suite goes from 23 to 73 tests, 97% coverage.
+  The suite goes from 23 to 75 tests, ~97% coverage.
 - `scripts/demo.py` (the former root-level `examples.py`).
 
 ### Changed
+- **Codebase translated to English.** Every identifier, docstring, comment, log message and console
+  string is now English (`Persona`→`Person`, `ParejaValidator`→`PairValidator`,
+  `generar_asignaciones`→`generate_assignments`, `ejecutar_completo`→`run`, `nombre`→`name`, …).
+  **Spanish is kept only in the copy the participants receive** — the email subject and bodies in
+  `templates/email_template.py` and the plain-text fallback in `email_service.py`. Breaking for
+  anyone using the API or the config:
+  - CLI flag `--enviar` → `--send`.
+  - YAML keys `personas`/`nombre`/`restricciones` → `participants`/`name`/`restrictions`
+    (`config/settings.yaml` must be migrated; the example file already is).
+  - Default output file `output/asignaciones.json` → `output/assignments.json`; the saved JSON keys
+    `asignaciones`/`total_personas` → `assignments`/`total_participants`.
+- **Best-practice fixes folded in**: generic type parameters completed (`set[frozenset[str]]`,
+  `list[Person]`, `dict[str, str]`), and a participant entry without a `name` now raises `ConfigError`
+  instead of a raw `KeyError`.
 - **Configuration layout**: secrets moved from `config/.env` to `.env` at the repository root
   (with `.env.example` alongside it); `config/` now holds only `settings.yaml` and its example.
   `Config` locates the file with `find_dotenv(usecwd=True)` instead of probing two hardcoded

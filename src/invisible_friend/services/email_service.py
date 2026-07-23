@@ -1,4 +1,4 @@
-"""Servicio de envío de emails."""
+"""Email sending service."""
 
 import smtplib
 import ssl
@@ -12,146 +12,146 @@ logger = get_logger(__name__)
 
 
 class EmailService:
-    """Gestor de envío de emails."""
+    """Handles composing and sending the assignment emails."""
 
     def __init__(self, smtp_server: str, smtp_port: int, email_sender: str, password: str) -> None:
         """
-        Inicializa el servicio de email.
+        Initialize the email service.
 
         Args:
-            smtp_server: Servidor SMTP
-            smtp_port: Puerto SMTP
-            email_sender: Email del remitente
-            password: Contraseña del remitente
+            smtp_server: SMTP server
+            smtp_port: SMTP port
+            email_sender: Sender email address
+            password: Sender password
         """
         self.smtp_server = smtp_server
         self.smtp_port = smtp_port
         self.email_sender = email_sender
         self.password = password
 
-    def crear_email(self, destinatario: str, asunto: str, cuerpo: str) -> EmailMessage:
+    def create_email(self, recipient: str, subject: str, body: str) -> EmailMessage:
         """
-        Crea un objeto EmailMessage.
+        Build an EmailMessage object.
 
         Args:
-            destinatario: Email del destinatario
-            asunto: Asunto del email
-            cuerpo: Cuerpo del email
+            recipient: Recipient email address
+            subject: Email subject
+            body: Email body
 
         Returns:
-            EmailMessage configurado
+            Configured EmailMessage
         """
         email = EmailMessage()
         email["From"] = self.email_sender
-        email["To"] = destinatario
-        email["Subject"] = asunto
-        email.set_content(cuerpo)
+        email["To"] = recipient
+        email["Subject"] = subject
+        email.set_content(body)
         return email
 
-    def enviar_email(self, destinatario: str, email: EmailMessage) -> bool:
+    def send_email(self, recipient: str, email: EmailMessage) -> bool:
         """
-        Envía un email usando SMTP.
+        Send an email over SMTP.
 
         Args:
-            destinatario: Email del destinatario
-            email: Objeto EmailMessage
+            recipient: Recipient email address
+            email: EmailMessage object
 
         Returns:
-            True si se envió correctamente
+            True if it was sent successfully
 
         Raises:
-            EmailError: Si hay error al enviar
+            EmailError: If sending fails
         """
         try:
             context = ssl.create_default_context()
             with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, context=context) as smtp:
                 smtp.login(self.email_sender, self.password)
-                smtp.sendmail(self.email_sender, destinatario, email.as_string())
+                smtp.sendmail(self.email_sender, recipient, email.as_string())
 
-            logger.info(f"Email enviado correctamente a {destinatario}")
+            logger.info(f"Email sent successfully to {recipient}")
             return True
         except smtplib.SMTPException as e:
-            error_msg = f"Error SMTP al enviar email a {destinatario}: {e}"
+            error_msg = f"SMTP error while sending email to {recipient}: {e}"
             logger.error(error_msg)
             raise EmailError(error_msg) from e
         except Exception as e:
-            error_msg = f"Error al enviar email a {destinatario}: {e}"
+            error_msg = f"Error while sending email to {recipient}: {e}"
             logger.error(error_msg)
             raise EmailError(error_msg) from e
 
-    def enviar_asignacion(
+    def send_assignment(
         self,
-        destinatario: str,
-        nombre_persona: str,
-        amigo_invisible: str,
-        usar_template: bool = True,
+        recipient: str,
+        person_name: str,
+        assigned_person: str,
+        use_template: bool = True,
     ) -> bool:
         """
-        Envía el email con la asignación de amigo invisible.
+        Send the email with the Secret Santa assignment.
 
         Args:
-            destinatario: Email del destinatario
-            nombre_persona: Nombre de la persona
-            amigo_invisible: Nombre del amigo invisible
-            usar_template: Si usar template HTML
+            recipient: Recipient email address
+            person_name: Name of the recipient
+            assigned_person: Name of their secret friend
+            use_template: Whether to use the template body
 
         Returns:
-            True si se envió correctamente
+            True if it was sent successfully
         """
         try:
-            if usar_template:
-                cuerpo = EmailTemplate.generar_email(nombre_persona, amigo_invisible)
-                asunto = EmailTemplate.ASUNTO
+            if use_template:
+                body = EmailTemplate.render_body(person_name, assigned_person)
+                subject = EmailTemplate.SUBJECT
             else:
-                asunto = "Amigo Invisible"
-                cuerpo = (
-                    f"Hola {nombre_persona},\n\n"
-                    f"Tu amigo invisible es {amigo_invisible}.\n\n"
+                subject = "Amigo Invisible"
+                body = (
+                    f"Hola {person_name},\n\n"
+                    f"Tu amigo invisible es {assigned_person}.\n\n"
                     "¡Que disfrutes!"
                 )
 
-            email = self.crear_email(destinatario, asunto, cuerpo)
-            return self.enviar_email(destinatario, email)
+            email = self.create_email(recipient, subject, body)
+            return self.send_email(recipient, email)
         except Exception as e:
-            logger.error(f"Error al enviar asignación a {nombre_persona}: {e}")
-            raise EmailError(f"Error al enviar asignación: {e}") from e
+            logger.error(f"Error while sending assignment to {person_name}: {e}")
+            raise EmailError(f"Error while sending assignment: {e}") from e
 
-    def enviar_asignaciones_masivas(
-        self, asignaciones: dict, personas_dict: dict, simular: bool = False
+    def send_assignments(
+        self, assignments: dict[str, str], emails: dict[str, str], simulate: bool = False
     ) -> tuple[int, int]:
         """
-        Envía emails a múltiples personas.
+        Send emails to multiple people.
 
         Args:
-            asignaciones: Dict {nombre_persona: amigo_invisible}
-            personas_dict: Dict {nombre: email}
-            simular: Si True, solo simula sin enviar
+            assignments: Dict {person_name: secret_friend}
+            emails: Dict {name: email}
+            simulate: If True, only simulate without sending
 
         Returns:
-            Tupla (exitosos, fallidos)
+            Tuple (successful, failed)
         """
-        exitosos = 0
-        fallidos = 0
+        successful = 0
+        failed = 0
 
-        logger.info(f"Iniciando envío de emails {'(SIMULACIÓN)' if simular else ''}")
+        logger.info(f"Starting email delivery {'(SIMULATION)' if simulate else ''}")
 
-        for persona_nombre, amigo_invisible in asignaciones.items():
-            email_destinatario = personas_dict.get(persona_nombre)
+        for person_name, assigned_person in assignments.items():
+            recipient_email = emails.get(person_name)
 
-            if not email_destinatario:
-                logger.warning(f"Sin email para {persona_nombre}, omitiendo")
-                fallidos += 1
+            if not recipient_email:
+                logger.warning(f"No email for {person_name}, skipping")
+                failed += 1
                 continue
 
-            if simular:
-                logger.info(f"[SIMULADO] Email a {persona_nombre}: {amigo_invisible}")
-                exitosos += 1
+            if simulate:
+                logger.info(f"[SIMULATED] Email to {person_name}: {assigned_person}")
+                successful += 1
             else:
                 try:
-                    self.enviar_asignacion(email_destinatario, persona_nombre, amigo_invisible)
-                    exitosos += 1
+                    self.send_assignment(recipient_email, person_name, assigned_person)
+                    successful += 1
                 except EmailError:
-                    fallidos += 1
+                    failed += 1
 
-        logger.info(f"Envío completado: {exitosos} exitosos, {fallidos} fallidos")
-        return exitosos, fallidos
+        logger.info(f"Delivery finished: {successful} successful, {failed} failed")
+        return successful, failed

@@ -20,7 +20,7 @@
     {
       "name": "send-becomes-the-default",
       "scope": "email",
-      "diff": "src/invisible_friend/__main__.py: `ejecutar_completo(enviar=...)` default changed from False to True, and `--enviar` becomes `--simular`",
+      "diff": "src/invisible_friend/__main__.py: `run(send=...)` default changed from False to True, and `--send` becomes `--simulate`",
       "expected_findings": [
         { "bucket": "blocker", "rule": "Email", "reason": "real sending must stay opt-in; the default run cannot open an SMTP connection" }
       ]
@@ -28,7 +28,7 @@
     {
       "name": "assignment-loses-the-single-cycle",
       "scope": "assignment",
-      "diff": "src/invisible_friend/services/secret_santa.py: the cycle is replaced by pairing people two by two (`personas[i] <-> personas[i+1]`)",
+      "diff": "src/invisible_friend/services/secret_santa.py: the cycle is replaced by pairing people two by two (`participants[i] <-> participants[i+1]`)",
       "expected_findings": [
         { "bucket": "blocker", "rule": "Domain invariants", "reason": "mutual pairs are sub-cycles: it is no longer a single cycle over all participants" },
         { "bucket": "blocker", "rule": "Tests", "reason": "changed behavior with no covering test" }
@@ -53,7 +53,7 @@
     {
       "name": "assignment-test-asserts-a-fixed-mapping",
       "scope": "assignment",
-      "diff": "tests/test_secret_santa.py: asserts `asignaciones == {Alice: Bob, Bob: Charlie, Charlie: Alice}` without seeding random",
+      "diff": "tests/test_secret_santa.py: asserts `assignments == {Alice: Bob, Bob: Charlie, Charlie: Alice}` without seeding random",
       "expected_findings": [
         { "bucket": "warning", "rule": "Tests", "reason": "the shuffle is random: asserting one mapping is flaky by construction" }
       ]
@@ -85,7 +85,7 @@
     {
       "name": "clean-add-yaml-key",
       "scope": "config",
-      "diff": "config.py reads a new `app.presupuesto` with a default and exposes it as a property; added to config/settings.example.yaml with a fake value, documented in the README, and tests/test_config.py covers the default and the parsed value",
+      "diff": "config.py reads a new `app.budget` with a default and exposes it as a property; added to config/settings.example.yaml with a fake value, documented in the README, and tests/test_config.py covers the default and the parsed value",
       "expected_findings": []
     },
     {

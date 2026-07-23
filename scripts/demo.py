@@ -1,8 +1,8 @@
-"""Script de demostración de las funcionalidades del paquete.
+"""Demonstration script for the package's functionality.
 
-No forma parte de la aplicación: sirve para ver la API en acción sin enviar
-ningún email. Ejecútalo desde la raíz del proyecto, porque `demo_config()`
-resuelve `config/settings.yaml` de forma relativa al directorio actual:
+It is not part of the application: it shows the API in action without sending
+any email. Run it from the project root, because `demo_config()` resolves
+`config/settings.yaml` relative to the current directory:
 
     python scripts/demo.py
 """
@@ -10,109 +10,108 @@ resuelve `config/settings.yaml` de forma relativa al directorio actual:
 from pathlib import Path
 
 from invisible_friend.config import Config
-from invisible_friend.models import Persona
+from invisible_friend.models import Person
 from invisible_friend.services.secret_santa import SecretSantaService
 from invisible_friend.utils.logger import get_logger
-from invisible_friend.validators import ParejaValidator
+from invisible_friend.validators import PairValidator
 
 logger = get_logger(__name__)
 
 
-def demo_basico() -> None:
-    """Demostración básica de funcionalidades."""
+def demo_basic() -> None:
+    """Basic feature demonstration."""
     print("\n" + "=" * 60)
-    print("🎁 DEMOSTRACIÓN - INVISIBLE FRIEND")
+    print("🎁 DEMO - INVISIBLE FRIEND")
     print("=" * 60 + "\n")
 
-    # 1. Crear personas manualmente
-    print("1️⃣  Creando personas...")
-    personas = [
-        Persona("Alice", "alice@example.com"),
-        Persona("Bob", "bob@example.com"),
-        Persona("Charlie", "charlie@example.com"),
-        Persona("Diana", "diana@example.com"),
+    # 1. Create participants manually.
+    print("1️⃣  Creating participants...")
+    participants = [
+        Person("Alice", "alice@example.com"),
+        Person("Bob", "bob@example.com"),
+        Person("Charlie", "charlie@example.com"),
+        Person("Diana", "diana@example.com"),
     ]
-    print(f"   ✓ {len(personas)} personas creadas\n")
+    print(f"   ✓ {len(participants)} participants created\n")
 
-    # 2. Crear validador con restricciones
-    print("2️⃣  Configurando restricciones...")
-    restricciones = [["Alice", "Bob"]]
-    validator = ParejaValidator(restricciones)
-    print(f"   ✓ {len(restricciones)} restricción(es) configurada(s)\n")
+    # 2. Create a validator with restrictions.
+    print("2️⃣  Configuring restrictions...")
+    restrictions = [["Alice", "Bob"]]
+    validator = PairValidator(restrictions)
+    print(f"   ✓ {len(restrictions)} restriction(s) configured\n")
 
-    # 3. Validar parejas
-    print("3️⃣  Validando parejas...")
-    print(f"   Alice - Bob: {validator.es_pareja_valida(personas[0], personas[1])}")
-    print(f"   Alice - Charlie: {validator.es_pareja_valida(personas[0], personas[2])}\n")
+    # 3. Validate pairs.
+    print("3️⃣  Validating pairs...")
+    print(f"   Alice - Bob: {validator.is_valid_pair(participants[0], participants[1])}")
+    print(f"   Alice - Charlie: {validator.is_valid_pair(participants[0], participants[2])}\n")
 
-    # 4. Generar asignaciones
-    print("4️⃣  Generando asignaciones...")
-    service = SecretSantaService(validator, max_intentos=100)
-    asignaciones = service.generar_asignaciones(personas)
-    print("   ✓ Asignaciones generadas!\n")
+    # 4. Generate assignments.
+    print("4️⃣  Generating assignments...")
+    service = SecretSantaService(validator, max_attempts=100)
+    assignments = service.generate_assignments(participants)
+    print("   ✓ Assignments generated!\n")
 
-    # 5. Mostrar asignaciones
-    print("5️⃣  Mostrando asignaciones:")
-    service.imprimir_asignaciones(asignaciones)
+    # 5. Show assignments.
+    print("5️⃣  Showing assignments:")
+    service.print_assignments(assignments)
     print()
 
 
 def demo_config() -> None:
-    """Demostración cargando configuración desde YAML."""
+    """Demonstration loading configuration from YAML."""
     print("\n" + "=" * 60)
-    print("⚙️  DEMOSTRACIÓN - CARGANDO CONFIGURACIÓN")
+    print("⚙️  DEMO - LOADING CONFIGURATION")
     print("=" * 60 + "\n")
 
     try:
         config = Config(Path("config/settings.yaml"))
 
-        print(f"📋 Personas cargadas: {len(config.personas)}")
-        for persona in config.personas[:3]:
-            print(f"   - {persona.nombre} ({persona.email or 'sin email'})")
+        print(f"📋 Participants loaded: {len(config.participants)}")
+        for person in config.participants[:3]:
+            print(f"   - {person.name} ({person.email or 'no email'})")
 
-        print(f"\n🚫 Restricciones: {len(config.restricciones)}")
-        for restriccion in config.restricciones[:2]:
-            print(f"   - {restriccion[0]} ≠ {restriccion[1]}")
+        print(f"\n🚫 Restrictions: {len(config.restrictions)}")
+        for restriction in config.restrictions[:2]:
+            print(f"   - {restriction[0]} ≠ {restriction[1]}")
 
-        print("\n⚡ Configuración SMTP:")
-        print(f"   - Servidor: {config.smtp_server}")
-        print(f"   - Puerto: {config.smtp_port}")
-        print(f"   - Max intentos: {config.max_intentos}\n")
+        print("\n⚡ SMTP configuration:")
+        print(f"   - Server: {config.smtp_server}")
+        print(f"   - Port: {config.smtp_port}")
+        print(f"   - Max attempts: {config.max_attempts}\n")
 
     except Exception as e:
-        print(f"❌ Error cargando configuración: {e}\n")
+        print(f"❌ Error loading configuration: {e}\n")
 
 
-def demo_errores() -> None:
-    """Demostración de manejo de errores."""
+def demo_errors() -> None:
+    """Demonstration of error handling."""
     print("\n" + "=" * 60)
-    print("🔴 DEMOSTRACIÓN - MANEJO DE ERRORES")
+    print("🔴 DEMO - ERROR HANDLING")
     print("=" * 60 + "\n")
 
     from invisible_friend.exceptions import ValidationError
 
-    # Intentar crear persona con email inválido
-    print("1️⃣  Intentando crear persona con email inválido...")
+    # Try to create a person with an invalid email.
+    print("1️⃣  Trying to create a person with an invalid email...")
     try:
-        Persona("Juan", "email_invalido")
+        Person("Juan", "invalid_email")
     except ValidationError as e:
-        print(f"   ✓ Error capturado: {e}\n")
+        print(f"   ✓ Error caught: {e}\n")
 
-    # Intentar asignar persona a sí misma
-    print("2️⃣  Intentando asignar persona a sí misma...")
+    # Try to assign a person to themselves.
+    print("2️⃣  Trying to assign a person to themselves...")
     try:
-        Persona("Juan", "juan@example.com")
-        from invisible_friend.models import Asignacion
+        from invisible_friend.models import Assignment
 
-        p = Persona("Juan", "juan@example.com")
-        Asignacion(p, p)
+        p = Person("Juan", "juan@example.com")
+        Assignment(p, p)
     except ValidationError as e:
-        print(f"   ✓ Error capturado: {e}\n")
+        print(f"   ✓ Error caught: {e}\n")
 
 
 if __name__ == "__main__":
-    demo_basico()
+    demo_basic()
     demo_config()
-    demo_errores()
+    demo_errors()
 
-    print("✅ Demostraciones completadas!\n")
+    print("✅ Demonstrations complete!\n")

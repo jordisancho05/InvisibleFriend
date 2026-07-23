@@ -1,7 +1,7 @@
-"""Amigo Invisible: genera y reparte por email las asignaciones de un sorteo.
+"""Invisible Friend: generate and deliver a Secret Santa draw by email.
 
-La versión es única y vive en `pyproject.toml`; aquí se lee de los metadatos
-del paquete instalado en lugar de duplicarla.
+The version has a single source of truth in `pyproject.toml`; here it is read
+from the installed package metadata instead of being duplicated.
 """
 
 from importlib.metadata import PackageNotFoundError, version

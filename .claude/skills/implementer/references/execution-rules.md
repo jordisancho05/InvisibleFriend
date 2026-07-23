@@ -23,7 +23,7 @@
 ## Run / test
 - Commands via `@.claude/skills/references/common-commands.md` (`pytest`, `ruff check .`, `mypy src`,
   `pip install -e ".[dev]"`, `python main.py`). Tests must never open a socket or read the real config:
-  patch `smtplib.SMTP_SSL` with `unittest.mock.patch`, use `simular=True` for bulk sends, `tmp_path`
+  patch `smtplib.SMTP_SSL` with `unittest.mock.patch`, use `simulate=True` for bulk sends, `tmp_path`
   for files and `monkeypatch` for env vars.
 - A step isn't green until `pytest` for it passes **and** `ruff check .` is clean on the touched files.
 
@@ -33,11 +33,11 @@
   is opt-in).
 - Domain invariants that must survive any change (see
   `@.claude/skills/references/project-architecture.md` §Invariants): the assignment is a **single
-  cycle**, restrictions are **symmetric**, `simular` / `enviar` default to not sending.
+  cycle**, restrictions are **symmetric**, `simulate` / `send` default to not sending.
 - Code-style additions not in `CLAUDE.md`:
   - **Type hints** on new public functions; the project targets `mypy` with `disallow_untyped_defs`.
   - New code logs via `get_logger(__name__)` from `utils/logger.py`, not `print`. The existing `print`
-    calls in `main.py` and `imprimir_asignaciones()` are the deliberate CLI output — don't propagate
+    calls in `__main__.py` and `print_assignments()` are the deliberate CLI output — don't propagate
     the pattern into services.
   - Read configuration from the `Config` object, never `os.getenv` or a second `yaml.safe_load`
     scattered across modules.

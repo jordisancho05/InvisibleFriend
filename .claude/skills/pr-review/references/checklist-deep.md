@@ -22,8 +22,8 @@
 - Restrictions stay **symmetric** (`frozenset`): a rule that treats `A-B` differently from `B-A` is a
   bug, not a feature.
 - A stricter rule can make the problem unsatisfiable — the `AssignmentError` path must stay reachable
-  and tested, and the retry loop must remain bounded by `max_intentos`.
-- Validation rules belong in `ParejaValidator`, not inlined into `SecretSantaService`.
+  and tested, and the retry loop must remain bounded by `max_attempts`.
+- Validation rules belong in `PairValidator`, not inlined into `SecretSantaService`.
 
 ## Config (`config`)
 - New values are read through the `Config` object. An `os.getenv(...)` or a second `yaml.safe_load`
@@ -34,7 +34,7 @@
   looks like it worked.
 
 ## Email (`email`)
-- **Sending stays opt-in.** `simular=True` / `enviar=False` remain the defaults; `--enviar` is the
+- **Sending stays opt-in.** `simulate=True` / `send=False` remain the defaults; `--send` is the
   only path that opens a connection. A default flipped to send is a blocker.
 - The wording lives in `templates/email_template.py`, not in the service. The service handles
   transport only.
@@ -43,15 +43,17 @@
 - SMTP failures surface as `EmailError`, never as a raw `smtplib` exception escaping the service.
 
 ## Languages
-- Comments, logs, docstrings and the domain vocabulary (`Persona`, `generar_asignaciones`,
-  `es_pareja_valida`) stay in **Spanish** — a diff that "translates" them to English is a warning.
-- The email copy is user-facing Spanish; don't translate those literals either.
+- Code is **English**: identifiers, docstrings, comments, log messages and console output. A diff
+  that introduces a Spanish identifier or docstring (`Persona`, `generar_asignaciones`) is a warning.
+- **Spanish is expected in exactly one place**: the participant email copy — the subject and bodies in
+  `templates/email_template.py` and the plain-text fallback in `email_service.py`. Don't let anyone
+  "translate those to English", and don't let Spanish copy leak into a log or a variable name.
 
 ## Layering & style
 - Dependencies point downward only: `models` / `validators` never import a service; no service
   imports `__main__`. A new import that inverts this is a warning.
 - New code logs via `get_logger(__name__)`, not `print`. The `print`s in `__main__.py` and
-  `imprimir_asignaciones()` are the deliberate CLI output.
+  `print_assignments()` are the deliberate CLI output.
 - The project's own exceptions (`exceptions.py`) are raised, never a bare `Exception`, and are
   chained with `raise ... from e`.
 - New public functions are type-hinted (`mypy` runs with `disallow_untyped_defs`).

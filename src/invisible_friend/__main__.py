@@ -1,10 +1,9 @@
-"""Punto de entrada de la aplicación.
+"""Application entry point.
 
-    python -m invisible_friend            # simula el envío (por defecto)
-    python -m invisible_friend --enviar   # envía los emails de verdad
+    python -m invisible_friend            # simulate the delivery (default)
+    python -m invisible_friend --send     # actually send the emails
 
-El envío real es siempre explícito: sin `--enviar` no se abre ninguna conexión
-SMTP.
+Real delivery is always explicit: without `--send` no SMTP connection is opened.
 """
 
 import argparse
@@ -18,28 +17,28 @@ from invisible_friend.services.email_service import EmailService
 from invisible_friend.services.secret_santa import SecretSantaService
 from invisible_friend.utils.file_handler import FileHandler
 from invisible_friend.utils.logger import get_logger
-from invisible_friend.validators import ParejaValidator
+from invisible_friend.validators import PairValidator
 
 logger = get_logger(__name__)
 
-CONFIG_POR_DEFECTO = Path("config/settings.yaml")
-OUTPUT_POR_DEFECTO = Path("output/asignaciones.json")
+DEFAULT_CONFIG = Path("config/settings.yaml")
+DEFAULT_OUTPUT = Path("output/assignments.json")
 
 
 class InvisibleFriendApp:
-    """Orquesta el flujo completo: generar, mostrar, guardar y repartir."""
+    """Orchestrates the full flow: generate, show, save and deliver."""
 
-    def __init__(self, config_path: Path = CONFIG_POR_DEFECTO) -> None:
+    def __init__(self, config_path: Path = DEFAULT_CONFIG) -> None:
         """
-        Inicializa la aplicación.
+        Initialize the application.
 
         Args:
-            config_path: Ruta a la configuración YAML
+            config_path: Path to the YAML configuration
         """
-        logger.info("Inicializando aplicación Invisible Friend")
+        logger.info("Initializing Invisible Friend application")
         self.config = Config(config_path)
-        self.validator = ParejaValidator(self.config.restricciones)
-        self.secret_santa_service = SecretSantaService(self.validator, self.config.max_intentos)
+        self.validator = PairValidator(self.config.restrictions)
+        self.secret_santa_service = SecretSantaService(self.validator, self.config.max_attempts)
         self.email_service = EmailService(
             self.config.smtp_server,
             self.config.smtp_port,
@@ -47,120 +46,118 @@ class InvisibleFriendApp:
             self.config.email_password,
         )
 
-    def generar_asignaciones(self) -> dict:
+    def generate_assignments(self) -> dict:
         """
-        Genera las asignaciones de amigo invisible.
+        Generate the Secret Santa assignments.
 
         Returns:
-            Diccionario con asignaciones
+            Assignments dict
         """
         try:
-            return self.secret_santa_service.generar_asignaciones(self.config.personas)
+            return self.secret_santa_service.generate_assignments(self.config.participants)
         except InvisibleFriendError as e:
-            logger.error(f"Error al generar asignaciones: {e}")
+            logger.error(f"Error generating assignments: {e}")
             raise
 
-    def mostrar_asignaciones(self, asignaciones: dict) -> None:
+    def show_assignments(self, assignments: dict) -> None:
         """
-        Muestra las asignaciones en consola.
+        Print the assignments to the console.
 
         Args:
-            asignaciones: Diccionario de asignaciones
+            assignments: Assignments dict
         """
-        self.secret_santa_service.imprimir_asignaciones(asignaciones)
+        self.secret_santa_service.print_assignments(assignments)
 
-    def guardar_asignaciones(self, asignaciones: dict, ruta: Path = OUTPUT_POR_DEFECTO) -> None:
+    def save_assignments(self, assignments: dict, path: Path = DEFAULT_OUTPUT) -> None:
         """
-        Guarda las asignaciones en archivo JSON.
-
-        Args:
-            asignaciones: Diccionario de asignaciones
-            ruta: Ruta donde guardar
-        """
-        formateadas = self.secret_santa_service.obtener_asignaciones_formateadas(asignaciones)
-        FileHandler.guardar_asignaciones(ruta, formateadas)
-        logger.info(f"Asignaciones guardadas en {ruta}")
-
-    def enviar_emails(self, asignaciones: dict, simular: bool = True) -> tuple[int, int]:
-        """
-        Envía los emails con las asignaciones.
+        Save the assignments to a JSON file.
 
         Args:
-            asignaciones: Diccionario de asignaciones
-            simular: Si True, solo simula sin enviar
+            assignments: Assignments dict
+            path: Where to save
+        """
+        formatted = self.secret_santa_service.get_formatted_assignments(assignments)
+        FileHandler.save_assignments(path, formatted)
+        logger.info(f"Assignments saved to {path}")
+
+    def send_emails(self, assignments: dict, simulate: bool = True) -> tuple[int, int]:
+        """
+        Send the assignment emails.
+
+        Args:
+            assignments: Assignments dict
+            simulate: If True, only simulate without sending
 
         Returns:
-            Tupla (exitosos, fallidos)
+            Tuple (successful, failed)
         """
-        formateadas = self.secret_santa_service.obtener_asignaciones_formateadas(asignaciones)
-        emails = {p.nombre: p.email for p in self.config.personas}
+        formatted = self.secret_santa_service.get_formatted_assignments(assignments)
+        emails = {p.name: p.email for p in self.config.participants}
 
-        return self.email_service.enviar_asignaciones_masivas(formateadas, emails, simular=simular)
+        return self.email_service.send_assignments(formatted, emails, simulate=simulate)
 
-    def ejecutar_completo(
-        self, enviar: bool = False, output_path: Path = OUTPUT_POR_DEFECTO
-    ) -> None:
+    def run(self, send: bool = False, output_path: Path = DEFAULT_OUTPUT) -> None:
         """
-        Ejecuta el flujo completo de la aplicación.
+        Run the full application flow.
 
         Args:
-            enviar: Si True, envía los emails de verdad; si no, solo simula
-            output_path: Dónde guardar el JSON de asignaciones
+            send: If True, actually send the emails; otherwise only simulate
+            output_path: Where to save the assignments JSON
         """
         logger.info("=" * 50)
-        logger.info("INICIANDO FLUJO COMPLETO DE AMIGO INVISIBLE")
+        logger.info("STARTING FULL SECRET SANTA FLOW")
         logger.info("=" * 50)
 
-        logger.info("PASO 1: Generando asignaciones...")
-        asignaciones = self.generar_asignaciones()
+        logger.info("STEP 1: Generating assignments...")
+        assignments = self.generate_assignments()
 
-        logger.info("PASO 2: Mostrando asignaciones...")
-        self.mostrar_asignaciones(asignaciones)
+        logger.info("STEP 2: Showing assignments...")
+        self.show_assignments(assignments)
 
-        logger.info("PASO 3: Guardando asignaciones...")
-        self.guardar_asignaciones(asignaciones, output_path)
+        logger.info("STEP 3: Saving assignments...")
+        self.save_assignments(assignments, output_path)
 
-        logger.info(f"PASO 4: {'Enviando' if enviar else 'Simulando envío de'} emails...")
-        exitosos, fallidos = self.enviar_emails(asignaciones, simular=not enviar)
-        print(f"\n✓ Emails {'enviados' if enviar else 'simulados'}: {exitosos}")
-        if fallidos > 0:
-            print(f"✗ Emails fallidos: {fallidos}")
+        logger.info(f"STEP 4: {'Sending' if send else 'Simulating'} emails...")
+        successful, failed = self.send_emails(assignments, simulate=not send)
+        print(f"\n✓ Emails {'sent' if send else 'simulated'}: {successful}")
+        if failed > 0:
+            print(f"✗ Failed emails: {failed}")
 
         logger.info("=" * 50)
-        logger.info("FLUJO COMPLETADO EXITOSAMENTE")
+        logger.info("FLOW COMPLETED SUCCESSFULLY")
         logger.info("=" * 50)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """
-    Define y parsea los argumentos de línea de comandos.
+    Define and parse the command-line arguments.
 
     Args:
-        argv: Argumentos a parsear (None = los de sys.argv)
+        argv: Arguments to parse (None = sys.argv)
 
     Returns:
-        Namespace con enviar, config y output
+        Namespace with send, config and output
     """
     parser = argparse.ArgumentParser(
         prog="invisible-friend",
-        description="Genera las asignaciones de Amigo Invisible y las reparte por email.",
+        description="Generate the Secret Santa assignments and deliver them by email.",
     )
     parser.add_argument(
-        "--enviar",
+        "--send",
         action="store_true",
-        help="envía los emails de verdad (por defecto solo se simula)",
+        help="actually send the emails (by default it only simulates)",
     )
     parser.add_argument(
         "--config",
         type=Path,
-        default=CONFIG_POR_DEFECTO,
-        help=f"ruta al YAML de participantes (por defecto: {CONFIG_POR_DEFECTO})",
+        default=DEFAULT_CONFIG,
+        help=f"path to the participants YAML (default: {DEFAULT_CONFIG})",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=OUTPUT_POR_DEFECTO,
-        help=f"dónde guardar el JSON de asignaciones (por defecto: {OUTPUT_POR_DEFECTO})",
+        default=DEFAULT_OUTPUT,
+        help=f"where to save the assignments JSON (default: {DEFAULT_OUTPUT})",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser.parse_args(argv)
@@ -168,25 +165,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     """
-    Ejecuta la aplicación desde línea de comandos.
+    Run the application from the command line.
 
     Args:
-        argv: Argumentos a parsear (None = los de sys.argv)
+        argv: Arguments to parse (None = sys.argv)
 
     Returns:
-        0 si todo fue bien, 1 si hubo un error controlado
+        0 on success, 1 on a controlled failure
     """
     args = parse_args(argv)
     try:
         app = InvisibleFriendApp(args.config)
-        app.ejecutar_completo(enviar=args.enviar, output_path=args.output)
+        app.run(send=args.send, output_path=args.output)
     except InvisibleFriendError as e:
         logger.error(f"Error: {e}")
         print(f"❌ Error: {e}")
         return 1
-    except Exception as e:  # noqa: BLE001 - último cortafuegos del CLI
-        logger.error(f"Error fatal: {e}", exc_info=True)
-        print(f"❌ Error fatal: {e}")
+    except Exception as e:  # noqa: BLE001 - last-resort CLI safety net
+        logger.error(f"Fatal error: {e}", exc_info=True)
+        print(f"❌ Fatal error: {e}")
         return 1
     return 0
 

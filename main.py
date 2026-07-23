@@ -1,9 +1,9 @@
-"""Lanzador desde la raíz del proyecto.
+"""Launcher from the project root.
 
-Equivale a `python -m invisible_friend` y al script `invisible-friend`:
+Equivalent to `python -m invisible_friend` and the `invisible-friend` script:
 
-    python main.py              # simula el envío (por defecto)
-    python main.py --enviar     # envía los emails de verdad
+    python main.py            # simulate the delivery (default)
+    python main.py --send     # actually send the emails
 """
 
 import sys

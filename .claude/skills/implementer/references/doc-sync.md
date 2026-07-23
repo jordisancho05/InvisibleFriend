@@ -24,7 +24,7 @@
    whose description would now be wrong; every dependency version; every command; every config key;
    every new gotcha.
 2. **Grep the doc set for each item** — one `Grep` over `**/*.md` with the symbols alternated
-   (`generar_asignaciones|ParejaValidator|settings.yaml|…`). Search the **behavior words** too, not
+   (`generate_assignments|PairValidator|settings.yaml|…`). Search the **behavior words** too, not
    just identifiers: a doc can describe a behavior without naming the function.
 3. **Fix every hit** that the change made false. Moving `.env` → also fix every path in the README and
    the commands file. Renaming an entry point → fix every `python main.py` occurrence.

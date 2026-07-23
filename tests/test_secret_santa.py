@@ -1,115 +1,121 @@
-"""Tests para SecretSantaService.
+"""Tests for SecretSantaService.
 
-El servicio baraja al azar, así que estos tests fijan **invariantes** sobre
-muchas ejecuciones, nunca un emparejamiento concreto esperado.
+The service shuffles at random, so these tests pin **invariants** over many
+runs, never one concrete expected mapping.
 """
 
 import pytest
 
 from invisible_friend.exceptions import AssignmentError
-from invisible_friend.models import Persona
+from invisible_friend.models import Person
 from invisible_friend.services.secret_santa import SecretSantaService
-from invisible_friend.validators import ParejaValidator
+from invisible_friend.validators import PairValidator
 
-REPETICIONES = 25
+REPETITIONS = 25
 
 
-def test_cada_persona_da_y_recibe_exactamente_una_vez(
-    service: SecretSantaService, personas: list[Persona]
+def test_everyone_gives_and_receives_exactly_once(
+    service: SecretSantaService, participants: list[Person]
 ) -> None:
-    """n participantes producen n aristas, sin repetir emisor ni receptor."""
-    for _ in range(REPETICIONES):
-        asignaciones = service.generar_asignaciones(personas)
+    """n participants produce n edges, with no repeated giver or receiver."""
+    for _ in range(REPETITIONS):
+        assignments = service.generate_assignments(participants)
 
-        assert len(asignaciones) == len(personas)
-        assert set(asignaciones.keys()) == set(personas)
-        assert sorted(p.nombre for p in asignaciones.values()) == sorted(p.nombre for p in personas)
-
-
-def test_nadie_se_asigna_a_si_mismo(service: SecretSantaService, personas: list[Persona]) -> None:
-    """No hay puntos fijos en la permutación."""
-    for _ in range(REPETICIONES):
-        asignaciones = service.generar_asignaciones(personas)
-
-        for quien, a_quien in asignaciones.items():
-            assert quien != a_quien
+        assert len(assignments) == len(participants)
+        assert set(assignments.keys()) == set(participants)
+        assert sorted(p.name for p in assignments.values()) == sorted(p.name for p in participants)
 
 
-def test_ninguna_asignacion_viola_las_restricciones(
-    service: SecretSantaService, validator: ParejaValidator, personas: list[Persona]
+def test_nobody_is_assigned_to_themselves(
+    service: SecretSantaService, participants: list[Person]
 ) -> None:
-    """Ninguna arista generada es una pareja prohibida."""
-    for _ in range(REPETICIONES):
-        asignaciones = service.generar_asignaciones(personas)
+    """There are no fixed points in the permutation."""
+    for _ in range(REPETITIONS):
+        assignments = service.generate_assignments(participants)
 
-        for quien, a_quien in asignaciones.items():
-            assert validator.es_pareja_valida(quien, a_quien)
+        for giver, receiver in assignments.items():
+            assert giver != receiver
 
 
-def test_el_resultado_es_un_unico_ciclo(
-    service: SecretSantaService, personas: list[Persona]
+def test_no_assignment_violates_the_restrictions(
+    service: SecretSantaService, validator: PairValidator, participants: list[Person]
 ) -> None:
-    """Siguiendo n saltos desde cualquiera se vuelve al inicio habiendo visto a todos.
+    """No generated edge is a forbidden pair."""
+    for _ in range(REPETITIONS):
+        assignments = service.generate_assignments(participants)
 
-    Esto descarta que la permutación se parta en sub-ciclos (p. ej. dos parejas
-    que se regalan entre sí y se ignoran mutuamente).
+        for giver, receiver in assignments.items():
+            assert validator.is_valid_pair(giver, receiver)
+
+
+def test_the_result_is_a_single_cycle(
+    service: SecretSantaService, participants: list[Person]
+) -> None:
+    """Following n hops from anyone returns to the start having seen everyone.
+
+    This rules out the permutation splitting into sub-cycles (e.g. two pairs
+    gifting each other and ignoring the rest).
     """
-    for _ in range(REPETICIONES):
-        asignaciones = service.generar_asignaciones(personas)
+    for _ in range(REPETITIONS):
+        assignments = service.generate_assignments(participants)
 
-        inicio = personas[0]
-        visitados = []
-        actual = inicio
-        for _salto in range(len(personas)):
-            actual = asignaciones[actual]
-            visitados.append(actual)
+        start = participants[0]
+        visited = []
+        current = start
+        for _hop in range(len(participants)):
+            current = assignments[current]
+            visited.append(current)
 
-        assert actual == inicio, "el recorrido no vuelve al punto de partida"
-        assert len(set(visitados)) == len(personas), "hay sub-ciclos"
-
-
-def test_menos_de_dos_personas_lanza_assignment_error(service: SecretSantaService) -> None:
-    """Con una sola persona no existe amigo invisible posible."""
-    with pytest.raises(AssignmentError, match="al menos 2"):
-        service.generar_asignaciones([Persona("Alice", "alice@example.com")])
+        assert current == start, "the walk does not return to the starting point"
+        assert len(set(visited)) == len(participants), "there are sub-cycles"
 
 
-def test_lista_vacia_lanza_assignment_error(service: SecretSantaService) -> None:
-    """Sin participantes tampoco hay nada que asignar."""
+def test_fewer_than_two_participants_raises_assignment_error(
+    service: SecretSantaService,
+) -> None:
+    """With a single person there is no possible secret friend."""
+    with pytest.raises(AssignmentError, match="[Aa]t least 2"):
+        service.generate_assignments([Person("Alice", "alice@example.com")])
+
+
+def test_empty_list_raises_assignment_error(service: SecretSantaService) -> None:
+    """With no participants there is nothing to assign either."""
     with pytest.raises(AssignmentError):
-        service.generar_asignaciones([])
+        service.generate_assignments([])
 
 
-def test_restricciones_insatisfacibles_lanzan_assignment_error() -> None:
-    """Si las restricciones hacen el problema imposible, falla en vez de colgarse."""
-    dos = [Persona("Alice", "alice@example.com"), Persona("Bob", "bob@example.com")]
-    validator = ParejaValidator([["Alice", "Bob"]])
-    service = SecretSantaService(validator, max_intentos=20)
+def test_unsatisfiable_restrictions_raise_assignment_error() -> None:
+    """If the restrictions make the problem impossible, it fails instead of hanging."""
+    two = [Person("Alice", "alice@example.com"), Person("Bob", "bob@example.com")]
+    validator = PairValidator([["Alice", "Bob"]])
+    service = SecretSantaService(validator, max_attempts=20)
 
-    with pytest.raises(AssignmentError, match="20 intentos"):
-        service.generar_asignaciones(dos)
+    with pytest.raises(AssignmentError, match="20 attempts"):
+        service.generate_assignments(two)
 
 
-def test_obtener_asignaciones_formateadas_devuelve_nombres(
-    service: SecretSantaService, personas: list[Persona]
+def test_get_formatted_assignments_returns_names(
+    service: SecretSantaService, participants: list[Person]
 ) -> None:
-    """La versión formateada mapea nombre → nombre, apta para JSON y email."""
-    asignaciones = service.generar_asignaciones(personas)
+    """The formatted version maps name → name, ready for JSON and email."""
+    assignments = service.generate_assignments(participants)
 
-    formateadas = service.obtener_asignaciones_formateadas(asignaciones)
+    formatted = service.get_formatted_assignments(assignments)
 
-    assert set(formateadas) == {p.nombre for p in personas}
-    assert all(isinstance(k, str) and isinstance(v, str) for k, v in formateadas.items())
+    assert set(formatted) == {p.name for p in participants}
+    assert all(isinstance(k, str) and isinstance(v, str) for k, v in formatted.items())
 
 
-def test_imprimir_asignaciones_muestra_cada_pareja(
-    service: SecretSantaService, personas: list[Persona], capsys: pytest.CaptureFixture[str]
+def test_print_assignments_shows_every_pair(
+    service: SecretSantaService,
+    participants: list[Person],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """La salida por consola incluye una línea por participante."""
-    asignaciones = service.generar_asignaciones(personas)
+    """The console output includes one line per participant."""
+    assignments = service.generate_assignments(participants)
 
-    service.imprimir_asignaciones(asignaciones)
+    service.print_assignments(assignments)
 
-    salida = capsys.readouterr().out
-    for persona in personas:
-        assert persona.nombre in salida
+    output = capsys.readouterr().out
+    for person in participants:
+        assert person.name in output

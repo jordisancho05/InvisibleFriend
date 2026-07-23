@@ -1,7 +1,7 @@
-"""Tests para EmailService.
+"""Tests for EmailService.
 
-Ningún test abre un socket: `smtplib.SMTP_SSL` va siempre parcheado y los
-envíos masivos usan `simular=True`.
+No test opens a socket: `smtplib.SMTP_SSL` is always patched and bulk sends use
+`simulate=True`.
 """
 
 import smtplib
@@ -13,76 +13,72 @@ from invisible_friend.exceptions import EmailError
 from invisible_friend.services.email_service import EmailService
 
 
-def test_crear_email_rellena_las_cabeceras(email_service: EmailService) -> None:
-    """From, To y Subject salen del remitente configurado y de los argumentos."""
-    email = email_service.crear_email("recipient@example.com", "Asunto", "Cuerpo")
+def test_create_email_fills_the_headers(email_service: EmailService) -> None:
+    """From, To and Subject come from the configured sender and the arguments."""
+    email = email_service.create_email("recipient@example.com", "Subject", "Body")
 
     assert email["From"] == "sender@example.com"
     assert email["To"] == "recipient@example.com"
-    assert email["Subject"] == "Asunto"
-    assert "Cuerpo" in email.get_content()
+    assert email["Subject"] == "Subject"
+    assert "Body" in email.get_content()
 
 
 @patch("smtplib.SMTP_SSL")
-def test_enviar_email_hace_login_y_sendmail(
-    mock_smtp: MagicMock, email_service: EmailService
-) -> None:
-    """El envío entra al context manager, autentica y manda al destinatario."""
-    conexion = MagicMock()
-    mock_smtp.return_value.__enter__.return_value = conexion
-    email = email_service.crear_email("test@example.com", "Asunto", "Cuerpo")
+def test_send_email_logs_in_and_sends(mock_smtp: MagicMock, email_service: EmailService) -> None:
+    """Sending enters the context manager, authenticates and mails the recipient."""
+    connection = MagicMock()
+    mock_smtp.return_value.__enter__.return_value = connection
+    email = email_service.create_email("test@example.com", "Subject", "Body")
 
-    resultado = email_service.enviar_email("test@example.com", email)
+    result = email_service.send_email("test@example.com", email)
 
-    assert resultado is True
+    assert result is True
     assert mock_smtp.call_args.args == ("smtp.example.com", 465)
-    assert "context" in mock_smtp.call_args.kwargs, "la conexión debe ir sobre SSL"
-    conexion.login.assert_called_once_with("sender@example.com", "app-password")
-    assert conexion.sendmail.call_args.args[1] == "test@example.com"
+    assert "context" in mock_smtp.call_args.kwargs, "the connection must be over SSL"
+    connection.login.assert_called_once_with("sender@example.com", "app-password")
+    assert connection.sendmail.call_args.args[1] == "test@example.com"
 
 
 @patch("smtplib.SMTP_SSL")
-def test_error_smtp_se_traduce_a_email_error(
+def test_smtp_error_is_translated_to_email_error(
     mock_smtp: MagicMock, email_service: EmailService
 ) -> None:
-    """Un fallo de SMTP no se escapa como excepción de librería."""
+    """An SMTP failure does not escape as a library exception."""
     mock_smtp.return_value.__enter__.side_effect = smtplib.SMTPAuthenticationError(535, b"nope")
-    email = email_service.crear_email("test@example.com", "Asunto", "Cuerpo")
+    email = email_service.create_email("test@example.com", "Subject", "Body")
 
     with pytest.raises(EmailError, match="test@example.com"):
-        email_service.enviar_email("test@example.com", email)
+        email_service.send_email("test@example.com", email)
 
 
-def test_enviar_asignacion_usa_el_template(email_service: EmailService) -> None:
-    """Con usar_template=True el cuerpo lo genera EmailTemplate."""
-    with patch.object(email_service, "enviar_email", return_value=True) as mock_enviar:
-        resultado = email_service.enviar_asignacion(
-            "recipient@example.com", "Alice", "Bob", usar_template=True
+def test_send_assignment_uses_the_template(email_service: EmailService) -> None:
+    """With use_template=True the body is rendered by EmailTemplate."""
+    with patch.object(email_service, "send_email", return_value=True) as mock_send:
+        result = email_service.send_assignment(
+            "recipient@example.com", "Alice", "Bob", use_template=True
         )
 
-    assert resultado is True
-    email_enviado = mock_enviar.call_args.args[1]
-    cuerpo = email_enviado.get_content()
-    assert "Alice" in cuerpo
-    assert "Bob" in cuerpo
+    assert result is True
+    sent_email = mock_send.call_args.args[1]
+    body = sent_email.get_content()
+    assert "Alice" in body
+    assert "Bob" in body
 
 
-def test_enviar_asignacion_sin_template_usa_texto_plano(email_service: EmailService) -> None:
-    """Con usar_template=False el cuerpo es el mensaje corto, en español."""
-    with patch.object(email_service, "enviar_email", return_value=True) as mock_enviar:
-        email_service.enviar_asignacion(
-            "recipient@example.com", "Alice", "Bob", usar_template=False
-        )
+def test_send_assignment_without_template_uses_plain_text(email_service: EmailService) -> None:
+    """With use_template=False the body is the short message, in Spanish."""
+    with patch.object(email_service, "send_email", return_value=True) as mock_send:
+        email_service.send_assignment("recipient@example.com", "Alice", "Bob", use_template=False)
 
-    email_enviado = mock_enviar.call_args.args[1]
-    assert email_enviado["Subject"] == "Amigo Invisible"
-    assert "Hola Alice," in email_enviado.get_content()
-    assert "tu amigo invisible es bob" in email_enviado.get_content().lower()
+    sent_email = mock_send.call_args.args[1]
+    assert sent_email["Subject"] == "Amigo Invisible"
+    assert "Hola Alice," in sent_email.get_content()
+    assert "tu amigo invisible es bob" in sent_email.get_content().lower()
 
 
-def test_envio_masivo_simulado_no_toca_la_red(email_service: EmailService) -> None:
-    """simular=True cuenta todos como exitosos sin abrir conexión."""
-    asignaciones = {"Alice": "Bob", "Bob": "Charlie", "Charlie": "Alice"}
+def test_simulated_bulk_send_does_not_touch_the_network(email_service: EmailService) -> None:
+    """simulate=True counts everyone as successful without opening a connection."""
+    assignments = {"Alice": "Bob", "Bob": "Charlie", "Charlie": "Alice"}
     emails = {
         "Alice": "alice@example.com",
         "Bob": "bob@example.com",
@@ -90,37 +86,37 @@ def test_envio_masivo_simulado_no_toca_la_red(email_service: EmailService) -> No
     }
 
     with patch("smtplib.SMTP_SSL") as mock_smtp:
-        exitosos, fallidos = email_service.enviar_asignaciones_masivas(
-            asignaciones, emails, simular=True
-        )
+        successful, failed = email_service.send_assignments(assignments, emails, simulate=True)
 
-    assert (exitosos, fallidos) == (3, 0)
+    assert (successful, failed) == (3, 0)
     mock_smtp.assert_not_called()
 
 
-def test_participante_sin_email_cuenta_como_fallido(email_service: EmailService) -> None:
-    """Falta el email de alguien: se registra como fallo y no rompe el lote."""
-    exitosos, fallidos = email_service.enviar_asignaciones_masivas(
+def test_participant_without_email_counts_as_failed(email_service: EmailService) -> None:
+    """Someone's email is missing: it is recorded as a failure and does not break the batch."""
+    successful, failed = email_service.send_assignments(
         {"Alice": "Bob", "Bob": "Alice"},
         {"Alice": "", "Bob": "bob@example.com"},
-        simular=True,
+        simulate=True,
     )
 
-    assert (exitosos, fallidos) == (1, 1)
+    assert (successful, failed) == (1, 1)
 
 
 @patch("smtplib.SMTP_SSL")
-def test_un_fallo_no_aborta_el_lote(mock_smtp: MagicMock, email_service: EmailService) -> None:
-    """Si un envío revienta, el resto continúa y se contabiliza."""
+def test_one_failure_does_not_abort_the_batch(
+    mock_smtp: MagicMock, email_service: EmailService
+) -> None:
+    """If one send blows up, the rest continues and is counted."""
     mock_smtp.return_value.__enter__.return_value.sendmail.side_effect = [
         None,
         smtplib.SMTPRecipientsRefused({}),
     ]
 
-    exitosos, fallidos = email_service.enviar_asignaciones_masivas(
+    successful, failed = email_service.send_assignments(
         {"Alice": "Bob", "Bob": "Alice"},
         {"Alice": "alice@example.com", "Bob": "bob@example.com"},
-        simular=False,
+        simulate=False,
     )
 
-    assert (exitosos, fallidos) == (1, 1)
+    assert (successful, failed) == (1, 1)

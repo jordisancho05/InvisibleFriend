@@ -22,34 +22,35 @@
 - Gotcha: the secret goes in `.env` **only** — never in the YAML, in a test, or in a doc example.
 
 ## Change the assignment algorithm / add a restriction rule
-1. `validators.py` → the rule belongs in `ParejaValidator` (`es_pareja_valida` for a pairwise rule,
-   `validar_ciclo` for a whole-cycle rule). Keep restrictions **symmetric** (`frozenset`).
+1. `validators.py` → the rule belongs in `PairValidator` (`is_valid_pair` for a pairwise rule,
+   `validate_cycle` for a whole-cycle rule). Keep restrictions **symmetric** (`frozenset`).
 2. `services/secret_santa.py` → only touch it if the *search strategy* changes (shuffle + retry up to
-   `max_intentos`); the rule itself stays in the validator.
+   `max_attempts`); the rule itself stays in the validator.
 3. Test: `tests/test_validators.py` for the rule (pure unit, both directions `A-B` / `B-A`), and
    `tests/test_secret_santa.py` for the invariants over many runs (still a single cycle, no fixed
    point, no forbidden pair). Never assert one concrete mapping — the shuffle is random.
 - Gotcha: a stricter rule can make the problem unsatisfiable; assert the `AssignmentError` path too.
 
 ## Change the email content / template
-1. `templates/email_template.py` → `ASUNTO`, `generar_email()` (plain text) and/or
-   `generar_email_html()`. Copy stays in **Spanish**.
+1. `templates/email_template.py` → `SUBJECT`, `render_body()` (plain text) and/or
+   `render_html()`. Copy stays in **Spanish** (the only Spanish in the code).
 2. `services/email_service.py` → only if the *sending* changes (headers, MIME parts, HTML alternative);
    the wording never lives in the service.
-3. Test: `tests/test_email_service.py` (or a new `tests/test_email_template.py`) → assert the rendered
-   body contains the recipient's name and their assigned person, with **fake names**.
-- Gotcha: `enviar_asignacion(usar_template=True)` currently sends the plain-text body;
-  `generar_email_html()` is not wired into any send path.
+3. Test: `tests/test_email_service.py` (or `tests/test_email_template.py`) → assert the rendered
+   body contains the recipient's name and their assigned person, with **fake names**; the Spanish
+   copy assertions are the one place Spanish is expected in a test.
+- Gotcha: `send_assignment(use_template=True)` currently sends the plain-text body;
+  `render_html()` is not wired into any send path.
 
 ## Add a CLI flag
-1. `src/invisible_friend/__main__.py` → add the argument in `parse_args()` (next to `--enviar`,
+1. `src/invisible_friend/__main__.py` → add the argument in `parse_args()` (next to `--send`,
    `--config`, `--output`, `--version`) and thread it through `main()` into
-   `InvisibleFriendApp.ejecutar_completo(...)`. The root `main.py` is a thin launcher and needs no
+   `InvisibleFriendApp.run(...)`. The root `main.py` is a thin launcher and needs no
    change.
 2. Document it in the README's flag table.
 3. Test: `tests/test_main.py` → assert `parse_args([...])` yields the expected value **and** that the
    flag changes the branch taken, monkeypatching the collaborators; no SMTP, no real config file.
-- Gotcha: real sending must stay explicit and opt-in. `enviar` / `simular` default to not sending —
+- Gotcha: real sending must stay explicit and opt-in. `send` / `simulate` default to not sending —
   never flip that, and never add a flag whose *absence* sends.
 
 ## Bump the version (SemVer)

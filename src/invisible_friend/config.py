@@ -1,4 +1,4 @@
-"""Gestor centralizado de configuración."""
+"""Centralized configuration manager."""
 
 import os
 from pathlib import Path
@@ -8,18 +8,18 @@ import yaml
 from dotenv import find_dotenv, load_dotenv
 
 from invisible_friend.exceptions import ConfigError
-from invisible_friend.models import ConfigData, Persona
+from invisible_friend.models import ConfigData, Person
 
 
 class Config:
-    """Gestiona la configuración del proyecto desde YAML y variables de entorno."""
+    """Manages the project configuration from YAML and environment variables."""
 
     def __init__(self, config_path: Path | None = None) -> None:
         """
-        Inicializa la configuración.
+        Initialize the configuration.
 
         Args:
-            config_path: Ruta al archivo YAML de configuración
+            config_path: Path to the YAML configuration file
         """
         self.config_path = config_path or Path("config/settings.yaml")
         self._config: ConfigData = ConfigData()
@@ -27,92 +27,98 @@ class Config:
         self._load_config()
 
     def _load_environment(self) -> None:
-        """Carga los secretos desde el .env de la raíz del proyecto.
+        """Load the secrets from the project's root .env file.
 
-        Busca hacia arriba desde el directorio actual, de modo que la app
-        funcione tanto desde la raíz como desde un subdirectorio. Las
-        variables ya presentes en el entorno tienen prioridad y no se
-        sobrescriben. La ausencia de .env no es un error: solo significa que
-        los secretos deben venir del entorno.
+        Searches upward from the current directory, so the app works both from
+        the root and from a subdirectory. Variables already present in the
+        environment take precedence and are not overwritten. A missing .env is
+        not an error: it just means the secrets must come from the environment.
         """
         env_path = find_dotenv(usecwd=True)
         if env_path:
             load_dotenv(env_path)
 
     def _load_config(self) -> None:
-        """Carga configuración desde YAML."""
+        """Load the configuration from YAML."""
         if not self.config_path.exists():
-            raise ConfigError(f"Archivo de configuración no encontrado: {self.config_path}")
+            raise ConfigError(f"Configuration file not found: {self.config_path}")
 
         try:
             with open(self.config_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 self._parse_config(data)
         except yaml.YAMLError as e:
-            raise ConfigError(f"Error al parsear YAML: {e}") from e
+            raise ConfigError(f"Error parsing YAML: {e}") from e
+        except ConfigError:
+            raise
         except Exception as e:
-            raise ConfigError(f"Error al cargar configuración: {e}") from e
+            raise ConfigError(f"Error loading configuration: {e}") from e
 
     def _parse_config(self, data: dict[str, Any]) -> None:
-        """Parsea los datos YAML a ConfigData."""
+        """Parse the YAML data into ConfigData."""
         if not data:
-            raise ConfigError("Archivo de configuración vacío")
+            raise ConfigError("Empty configuration file")
 
-        # Configuración de la app
+        # App settings.
         app_config = data.get("app", {})
-        self._config.max_intentos = app_config.get("max_attempts", 100)
+        self._config.max_attempts = app_config.get("max_attempts", 100)
 
-        # Configuración de SMTP
+        # SMTP settings.
         email_config = data.get("email", {})
         self._config.smtp_server = email_config.get("smtp_server", "smtp.gmail.com")
         self._config.smtp_port = email_config.get("smtp_port", 465)
 
-        # Personas
-        personas_data = data.get("personas", [])
-        self._config.personas = [
-            Persona(nombre=p["nombre"], email=p.get("email", "")) for p in personas_data
-        ]
+        # Participants.
+        participants_data = data.get("participants", [])
+        self._config.participants = [self._build_person(entry) for entry in participants_data]
 
-        # Restricciones (pares prohibidos)
-        self._config.restricciones = data.get("restricciones", [])
+        # Restrictions (forbidden pairs).
+        self._config.restrictions = data.get("restrictions", [])
 
-    @property
-    def personas(self) -> list[Persona]:
-        """Retorna la lista de personas."""
-        return self._config.personas
-
-    @property
-    def restricciones(self) -> list[list[str]]:
-        """Retorna las restricciones (pares prohibidos)."""
-        return self._config.restricciones
+    @staticmethod
+    def _build_person(entry: dict[str, Any]) -> Person:
+        """Build a Person from a YAML entry, failing loudly on a missing name."""
+        if "name" not in entry:
+            raise ConfigError(f"Participant entry without a 'name': {entry}")
+        return Person(name=entry["name"], email=entry.get("email", ""))
 
     @property
-    def max_intentos(self) -> int:
-        """Retorna el número máximo de intentos."""
-        return self._config.max_intentos
+    def participants(self) -> list[Person]:
+        """Return the list of participants."""
+        return self._config.participants
+
+    @property
+    def restrictions(self) -> list[list[str]]:
+        """Return the restrictions (forbidden pairs)."""
+        return self._config.restrictions
+
+    @property
+    def max_attempts(self) -> int:
+        """Return the maximum number of attempts."""
+        return self._config.max_attempts
 
     @property
     def smtp_server(self) -> str:
-        """Retorna el servidor SMTP."""
+        """Return the SMTP server."""
         return self._config.smtp_server
 
     @property
     def smtp_port(self) -> int:
-        """Retorna el puerto SMTP."""
+        """Return the SMTP port."""
         return self._config.smtp_port
 
     @property
     def email_sender(self) -> str:
-        """Obtiene el email del remitente desde variables de entorno."""
+        """Return the sender email from the environment."""
         email = os.getenv("MAILSENDER")
         if not email:
-            raise ConfigError("Variable de entorno MAILSENDER no configurada")
+            raise ConfigError("Environment variable MAILSENDER not set")
         return email
 
     @property
     def email_password(self) -> str:
-        """Obtiene la contraseña desde variables de entorno."""
+        """Return the sender password from the environment."""
         password = os.getenv("PASSWORD")
         if not password:
-            raise ConfigError("Variable de entorno PASSWORD no configurada")
+            raise ConfigError("Environment variable PASSWORD not set")
         return password

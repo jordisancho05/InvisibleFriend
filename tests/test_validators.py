@@ -1,25 +1,25 @@
-"""Tests para ParejaValidator: restricciones simétricas y validación de ciclos."""
+"""Tests for PairValidator: symmetric restrictions and cycle validation."""
 
 import pytest
 
 from invisible_friend.exceptions import ValidationError
-from invisible_friend.models import Persona
-from invisible_friend.validators import ParejaValidator
+from invisible_friend.models import Person
+from invisible_friend.validators import PairValidator
 
 
-def buscar(personas: list[Persona], nombre: str) -> Persona:
-    """Devuelve la persona con ese nombre (helper de legibilidad)."""
-    return next(p for p in personas if p.nombre == nombre)
+def find(participants: list[Person], name: str) -> Person:
+    """Return the participant with that name (readability helper)."""
+    return next(p for p in participants if p.name == name)
 
 
-def test_pareja_permitida_es_valida(validator: ParejaValidator, personas: list[Persona]) -> None:
-    """Dos participantes sin restricción entre ellos pueden emparejarse."""
-    assert validator.es_pareja_valida(buscar(personas, "Alice"), buscar(personas, "Charlie"))
-    assert validator.es_pareja_valida(buscar(personas, "Bob"), buscar(personas, "Diana"))
+def test_allowed_pair_is_valid(validator: PairValidator, participants: list[Person]) -> None:
+    """Two participants with no restriction between them may be paired."""
+    assert validator.is_valid_pair(find(participants, "Alice"), find(participants, "Charlie"))
+    assert validator.is_valid_pair(find(participants, "Bob"), find(participants, "Diana"))
 
 
 @pytest.mark.parametrize(
-    ("uno", "otro"),
+    ("one", "other"),
     [
         ("Alice", "Bob"),
         ("Bob", "Alice"),
@@ -27,81 +27,81 @@ def test_pareja_permitida_es_valida(validator: ParejaValidator, personas: list[P
         ("Diana", "Charlie"),
     ],
 )
-def test_pareja_prohibida_se_rechaza_en_ambos_sentidos(
-    validator: ParejaValidator, personas: list[Persona], uno: str, otro: str
+def test_forbidden_pair_is_rejected_both_ways(
+    validator: PairValidator, participants: list[Person], one: str, other: str
 ) -> None:
-    """La restricción es simétrica: A-B y B-A se rechazan por igual."""
-    assert not validator.es_pareja_valida(buscar(personas, uno), buscar(personas, otro))
+    """The restriction is symmetric: A-B and B-A are rejected alike."""
+    assert not validator.is_valid_pair(find(participants, one), find(participants, other))
 
 
-def test_nadie_puede_ser_su_propio_amigo_invisible(
-    validator: ParejaValidator, personas: list[Persona]
+def test_nobody_can_be_their_own_secret_friend(
+    validator: PairValidator, participants: list[Person]
 ) -> None:
-    """Una persona consigo misma nunca es una pareja válida."""
-    alice = buscar(personas, "Alice")
-    assert not validator.es_pareja_valida(alice, alice)
+    """A person with themselves is never a valid pair."""
+    alice = find(participants, "Alice")
+    assert not validator.is_valid_pair(alice, alice)
 
 
-def test_ciclo_sin_parejas_prohibidas_es_valido(
-    validator: ParejaValidator, personas: list[Persona]
+def test_cycle_without_forbidden_pairs_is_valid(
+    validator: PairValidator, participants: list[Person]
 ) -> None:
-    """Alice → Charlie → Bob → Diana → Alice no viola ninguna restricción."""
-    ciclo = [
-        buscar(personas, "Alice"),
-        buscar(personas, "Charlie"),
-        buscar(personas, "Bob"),
-        buscar(personas, "Diana"),
+    """Alice → Charlie → Bob → Diana → Alice violates no restriction."""
+    cycle = [
+        find(participants, "Alice"),
+        find(participants, "Charlie"),
+        find(participants, "Bob"),
+        find(participants, "Diana"),
     ]
-    assert validator.validar_ciclo(ciclo)
+    assert validator.validate_cycle(cycle)
 
 
-def test_ciclo_con_pareja_prohibida_es_invalido(
-    validator: ParejaValidator, personas: list[Persona]
+def test_cycle_with_forbidden_pair_is_invalid(
+    validator: PairValidator, participants: list[Person]
 ) -> None:
-    """Una sola arista prohibida invalida el ciclo entero."""
-    ciclo = [
-        buscar(personas, "Alice"),
-        buscar(personas, "Bob"),
-        buscar(personas, "Charlie"),
-        buscar(personas, "Diana"),
+    """A single forbidden edge invalidates the whole cycle."""
+    cycle = [
+        find(participants, "Alice"),
+        find(participants, "Bob"),
+        find(participants, "Charlie"),
+        find(participants, "Diana"),
     ]
-    assert not validator.validar_ciclo(ciclo)
+    assert not validator.validate_cycle(cycle)
 
 
-def test_ciclo_comprueba_el_cierre(validator: ParejaValidator, personas: list[Persona]) -> None:
-    """La última arista vuelve al principio y también se valida."""
-    # Charlie → Alice → Diana → ... → Charlie: el cierre Diana→Charlie está prohibido.
-    ciclo = [
-        buscar(personas, "Charlie"),
-        buscar(personas, "Alice"),
-        buscar(personas, "Diana"),
+def test_cycle_checks_the_wrap_around(validator: PairValidator, participants: list[Person]) -> None:
+    """The last edge wraps back to the start and is validated too."""
+    # Charlie → Alice → Diana → ... → Charlie: the closing Diana→Charlie is forbidden.
+    cycle = [
+        find(participants, "Charlie"),
+        find(participants, "Alice"),
+        find(participants, "Diana"),
     ]
-    assert not validator.validar_ciclo(ciclo)
+    assert not validator.validate_cycle(cycle)
 
 
-def test_ciclo_vacio_lanza_validation_error(validator: ParejaValidator) -> None:
-    """Validar una lista vacía es un error de uso, no un ciclo válido."""
+def test_empty_cycle_raises_validation_error(validator: PairValidator) -> None:
+    """Validating an empty list is a usage error, not a valid cycle."""
     with pytest.raises(ValidationError):
-        validator.validar_ciclo([])
+        validator.validate_cycle([])
 
 
-def test_agregar_restriccion(validator: ParejaValidator, personas: list[Persona]) -> None:
-    """Una restricción añadida en caliente pasa a rechazarse."""
-    validator.agregar_restriccion("Alice", "Charlie")
+def test_add_restriction(validator: PairValidator, participants: list[Person]) -> None:
+    """A restriction added at runtime starts being rejected."""
+    validator.add_restriction("Alice", "Charlie")
 
-    assert not validator.es_pareja_valida(buscar(personas, "Alice"), buscar(personas, "Charlie"))
-
-
-def test_remover_restriccion(validator: ParejaValidator, personas: list[Persona]) -> None:
-    """Al quitar una restricción, la pareja vuelve a ser válida."""
-    validator.remover_restriccion("Alice", "Bob")
-
-    assert validator.es_pareja_valida(buscar(personas, "Alice"), buscar(personas, "Bob"))
+    assert not validator.is_valid_pair(find(participants, "Alice"), find(participants, "Charlie"))
 
 
-def test_obtener_restricciones_devuelve_tuplas_ordenadas(validator: ParejaValidator) -> None:
-    """Las restricciones se exponen como tuplas ordenadas, independientes del orden de entrada."""
-    assert sorted(validator.obtener_restricciones()) == [
+def test_remove_restriction(validator: PairValidator, participants: list[Person]) -> None:
+    """Removing a restriction makes the pair valid again."""
+    validator.remove_restriction("Alice", "Bob")
+
+    assert validator.is_valid_pair(find(participants, "Alice"), find(participants, "Bob"))
+
+
+def test_get_restrictions_returns_sorted_tuples(validator: PairValidator) -> None:
+    """Restrictions are exposed as sorted tuples, independent of input order."""
+    assert sorted(validator.get_restrictions()) == [
         ("Alice", "Bob"),
         ("Charlie", "Diana"),
     ]

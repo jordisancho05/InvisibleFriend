@@ -1,33 +1,37 @@
-"""Tests para EmailTemplate: el texto que reciben los participantes."""
+"""Tests for EmailTemplate: the text the participants receive.
+
+The identifiers are English; the asserted copy stays in Spanish, because that
+is what the participants actually read.
+"""
 
 from invisible_friend.templates.email_template import EmailTemplate
 
 
-def test_cuerpo_nombra_al_destinatario_y_a_su_amigo_invisible() -> None:
-    """El mensaje saluda a quien lo recibe y revela a quién le toca regalar."""
-    cuerpo = EmailTemplate.generar_email("Alice", "Bob")
+def test_body_names_the_recipient_and_their_secret_friend() -> None:
+    """The message greets the recipient and reveals who they gift to."""
+    body = EmailTemplate.render_body("Alice", "Bob")
 
-    assert "Alice" in cuerpo
-    assert "Bob" in cuerpo
-
-
-def test_cuerpo_esta_en_castellano() -> None:
-    """La copia de cara al usuario se mantiene en español."""
-    cuerpo = EmailTemplate.generar_email("Alice", "Bob")
-
-    assert "Hola" in cuerpo
-    assert "Tu amigo invisible es" in cuerpo
+    assert "Alice" in body
+    assert "Bob" in body
 
 
-def test_asunto_menciona_el_amigo_invisible() -> None:
-    """El asunto identifica el email sin desvelar la asignación."""
-    assert "Amigo Invisible" in EmailTemplate.ASUNTO
-    assert "Bob" not in EmailTemplate.ASUNTO
+def test_body_is_in_spanish() -> None:
+    """The user-facing copy stays in Spanish."""
+    body = EmailTemplate.render_body("Alice", "Bob")
+
+    assert "Hola" in body
+    assert "Tu amigo invisible es" in body
 
 
-def test_version_html_es_un_documento_completo() -> None:
-    """La variante HTML envuelve el mismo contenido en marcado válido."""
-    html = EmailTemplate.generar_email_html("Alice", "Bob")
+def test_subject_mentions_the_secret_friend_theme() -> None:
+    """The subject identifies the email without revealing the assignment."""
+    assert "Amigo Invisible" in EmailTemplate.SUBJECT
+    assert "Bob" not in EmailTemplate.SUBJECT
+
+
+def test_html_version_is_a_full_document() -> None:
+    """The HTML variant wraps the same content in valid markup."""
+    html = EmailTemplate.render_html("Alice", "Bob")
 
     assert html.strip().startswith("<html>")
     assert html.strip().endswith("</html>")

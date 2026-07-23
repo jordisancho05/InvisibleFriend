@@ -10,13 +10,13 @@
 1. `# <Plan name>` — clear title, no type prefixes.
 2. `## Acceptance criteria` — `[ ]` checklist of **verifiable** conditions, **numbered `AC-1`, `AC-2`, …**
    (what can be checked when done). Nothing vague ("works fine" ❌; "`python main.py` writes
-   `output/asignaciones.json` and exits 0 without sending email" ✅).
+   `output/assignments.json` and exits 0 without sending email" ✅).
 3. `## GRAPH STEPS` — the graph steps (schema in the **Full template** below).
 4. `## Out of scope` — explicit non-goals. This is the boundary the implementer's "implement only what
    the plan describes" rule enforces; anything ambiguous at execution time is checked against it.
 5. `## Uncovered / manual verification` — behavior that can't be unit-tested (a real Gmail SMTP send,
    the rendered email as it looks in a real inbox, a run against the real `config/settings.yaml`) +
-   how to verify it instead (e.g. `python main.py` and inspect `output/asignaciones.json`, or one
+   how to verify it instead (e.g. `python main.py` and inspect `output/assignments.json`, or one
    real send to your own address). Write `- None` if everything is covered. The implementer echoes
    this list in its final report.
 6. `## Checklist` — one `[ ]` per step, in execution order.
@@ -70,8 +70,8 @@ created: <YYYY-MM-DD>
 ```
 
 ## How rules
-- **Always concrete**: real repo file + function or pattern (`validators.ParejaValidator.validar_ciclo`,
-  `services/secret_santa.SecretSantaService.generar_asignaciones`, "new `presupuesto` field on
+- **Always concrete**: real repo file + function or pattern (`validators.PairValidator.validate_cycle`,
+  `services/secret_santa.SecretSantaService.generate_assignments`, "new `budget` field on
   `ConfigData` in `models.py`"). Never "modify the assignment code".
 - If the file doesn't exist yet, mark it `(NEW)` and state the target module.
 - **Traceability, both ways**: every `AC-n` is covered by at least one step's `Covers`; every step
@@ -82,10 +82,10 @@ created: <YYYY-MM-DD>
 
 ## Language and style
 - Plan text in **English**; identifiers, file names, functions and tests in their **real form** (don't
-  translate `generar_asignaciones`, `ParejaValidator`, `test_...` — the codebase names its domain in
-  Spanish and that stays).
+  invent names — the codebase is English: `generate_assignments`, `PairValidator`, `test_...`).
 - When describing future code or user-facing text, respect the `CLAUDE.md` language split (English
-  prose in the plan, Spanish email copy — it's always in context, don't restate it in the plan).
+  code and plan prose; Spanish **only** for the participant email copy — it's always in context, don't
+  restate it in the plan).
 - **Never write a real participant's name or email into a plan.** Use fake data (Alice/Bob) for any
   example; real data lives only in the gitignored `config/settings.yaml`.
 - Concise and scannable: short sentences, bullets, no filler. The plan should read at a glance and run

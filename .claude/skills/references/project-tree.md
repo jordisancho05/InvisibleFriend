@@ -7,7 +7,7 @@
 ```text
 Pinvisiblefriend/
 ├── pyproject.toml            # Metadata + version (SemVer) + deps + tool config (ruff, mypy, pytest)
-├── main.py                   # Thin launcher: `python main.py [--enviar] [--config P] [--output P]`
+├── main.py                   # Thin launcher: `python main.py [--send] [--config P] [--output P]`
 ├── CHANGELOG.md              # Keep a Changelog format
 ├── README.md                 # User-facing docs (Spanish)
 ├── CLAUDE.md                 # Agent guide; mirrored by .github/copilot-instructions.md
@@ -22,12 +22,12 @@ Pinvisiblefriend/
 │       ├── __init__.py       # __version__ from installed metadata
 │       ├── __main__.py       # InvisibleFriendApp + parse_args() + main()
 │       ├── config.py         # Config: root .env + YAML → ConfigData
-│       ├── models.py         # Persona / Asignacion / ConfigData dataclasses
+│       ├── models.py         # Person / Assignment / ConfigData dataclasses
 │       ├── exceptions.py     # InvisibleFriendError + 4 subclasses
-│       ├── validators.py     # ParejaValidator (symmetric frozenset restrictions)
+│       ├── validators.py     # PairValidator (symmetric frozenset restrictions)
 │       ├── services/
 │       │   ├── secret_santa.py   # SecretSantaService: cyclic assignment + retries
-│       │   └── email_service.py  # EmailService: SMTP_SSL send + simular mode
+│       │   └── email_service.py  # EmailService: SMTP_SSL send + simulate mode
 │       ├── templates/
 │       │   └── email_template.py # EmailTemplate: Spanish body (text + HTML)
 │       └── utils/
@@ -47,7 +47,7 @@ Pinvisiblefriend/
 │   └── test_version.py
 ├── scripts/
 │   └── demo.py               # Demonstration script (not production code)
-├── output/                   # GENERATED: asignaciones.json — gitignored
+├── output/                   # GENERATED: assignments.json — gitignored
 ├── logs/                     # GENERATED: invisible_friend.log — gitignored
 ├── .plan/                    # Plans (planner→implementer)
 │   └── <usecase>/<type>/<slug>.md   # usecase: assignment|email|config|general; type: feat|fix|refactor

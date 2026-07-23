@@ -19,27 +19,27 @@ Copy-Item config\settings.example.yaml config\settings.yaml   # then fill partic
 ## Run
 ```powershell
 python main.py                             # generate → print → save JSON → SIMULATE the emails
-python main.py --enviar                    # actually send over SMTP
-python main.py --config otro.yaml --output salida.json
+python main.py --send                      # actually send over SMTP
+python main.py --config other.yaml --output out.json
 python main.py --help                      # all flags
 # equivalent entry points:
 python -m invisible_friend
 invisible-friend                           # console script (after pip install -e .)
 ```
-- The default run **does not send email**: `--enviar` is the only path that opens an SMTP connection.
-- Output lands in `output/asignaciones.json`; logs in `logs/invisible_friend.log`.
+- The default run **does not send email**: `--send` is the only path that opens an SMTP connection.
+- Output lands in `output/assignments.json`; logs in `logs/invisible_friend.log`.
 
 ## Test
 ```powershell
 pytest                                     # whole suite
 pytest tests/test_secret_santa.py          # one file
-pytest tests/test_validators.py::test_nadie_puede_ser_su_propio_amigo_invisible   # one test
+pytest tests/test_validators.py::test_nobody_can_be_their_own_secret_friend   # one test
 pytest -k email                            # by keyword
 pytest -q                                  # quiet
 pytest --cov=invisible_friend --cov-report=term-missing   # coverage (opt-in, not in addopts)
 ```
 - **No SMTP in tests**: `smtplib.SMTP_SSL` is mocked (`unittest.mock.patch`) and bulk sends use
-  `simular=True`. A test that opens a socket is a bug.
+  `simulate=True`. A test that opens a socket is a bug.
 - Randomness: `SecretSantaService` shuffles, so assert **invariants** (it's a cycle, no forbidden
   pair, everyone appears once) or seed `random` — never a fixed expected mapping.
 

@@ -13,13 +13,15 @@ each participant their assigned person over Gmail SMTP. Packaged app under `src/
   the participants' real names and emails live in `config/settings.yaml`; `output/` and `logs/` hold
   generated copies of both. All four are gitignored — keep them that way. Only the `*.example.*`
   templates are versioned, and they use fake names.
-- **Sending email is opt-in.** The default run simulates (`simular=True` / `enviar=False`); only
-  `--enviar` opens an SMTP connection. Never flip a default to send.
-- **Code language split**: comments, logs and docstrings in **Spanish** (matching the existing code);
-  the domain vocabulary (`Persona`, `generar_asignaciones`, `es_pareja_valida`) is Spanish too — don't
-  translate it. The email copy is user-facing Spanish; don't translate those literals either.
+- **Sending email is opt-in.** The default run simulates (`simulate=True` / `send=False`); only
+  `--send` opens an SMTP connection. Never flip a default to send.
+- **Language split**: code is **English** — identifiers, docstrings, comments, log messages, console
+  output and the CLI. **Spanish is used ONLY for the copy the participants receive**: the email
+  subject and bodies in `templates/email_template.py` and the plain-text fallback body in
+  `email_service.py`. Don't translate those literals, and don't introduce Spanish anywhere else.
 - **Tests never touch the outside world**: no SMTP socket, no real `.env`, no real
   `config/settings.yaml`. Patch `smtplib.SMTP_SSL`, use `tmp_path` and `monkeypatch`, fake names only.
+  The tests that assert the email copy keep their Spanish substrings.
 - **Don't commit or push** unless explicitly asked.
 
 ## Stack
@@ -34,7 +36,7 @@ each participant their assigned person over Gmail SMTP. Packaged app under `src/
 python -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"          # editable install + dev tools
 python main.py                    # generate → print → save JSON → SIMULATE the emails
-python main.py --enviar           # actually send
+python main.py --send             # actually send
 # equivalent: python -m invisible_friend | invisible-friend (console script)
 pytest                            # test suite (no network, no SMTP)
 ruff check . ; mypy src           # lint + types
@@ -45,31 +47,34 @@ copy them from `.env.example` and `config/settings.example.yaml`. Full commands:
 
 ## Architecture (`src/invisible_friend/`)
 - `config.py` — `Config`: loads the root `.env` via `find_dotenv(usecwd=True)`, parses the YAML into
-  `ConfigData`, exposes `personas` / `restricciones` / `max_intentos` / `smtp_*` as properties and
-  `email_sender` / `email_password` from env. Anything missing or malformed → `ConfigError`.
-- `models.py` — `Persona` (validates name + mandatory well-formed email; hashed and compared **by name
-  only**), `Asignacion` (rejects self-assignment), `ConfigData`.
+  `ConfigData`, exposes `participants` / `restrictions` / `max_attempts` / `smtp_*` as properties and
+  `email_sender` / `email_password` from env. Anything missing or malformed → `ConfigError`
+  (a participant entry with no `name` included).
+- `models.py` — `Person` (validates name + mandatory well-formed email; hashed and compared **by name
+  only**), `Assignment` (`giver`/`receiver`, rejects self-assignment), `ConfigData`.
 - `exceptions.py` — `InvisibleFriendError` base + `ConfigError`, `EmailError`, `ValidationError`,
   `AssignmentError`.
-- `validators.py` — `ParejaValidator`: restrictions as `set[frozenset[str]]` so `A-B` == `B-A`;
-  `es_pareja_valida()`, `validar_ciclo()` (checks every edge including the wrap-around).
-- `services/secret_santa.py` — `SecretSantaService.generar_asignaciones()`: shuffle, build the cycle
-  `persona[i] → persona[(i+1) % n]`, retry up to `max_intentos` until the validator passes; raises
-  `AssignmentError` with <2 people or when attempts run out.
+- `validators.py` — `PairValidator`: restrictions as `set[frozenset[str]]` so `A-B` == `B-A`;
+  `is_valid_pair()`, `validate_cycle()` (checks every edge including the wrap-around).
+- `services/secret_santa.py` — `SecretSantaService.generate_assignments()`: shuffle, build the cycle
+  `person[i] → person[(i+1) % n]`, retry up to `max_attempts` until the validator passes; raises
+  `AssignmentError` with <2 participants or when attempts run out.
 - `services/email_service.py` — `EmailService`: builds the `EmailMessage`, sends over
-  `smtplib.SMTP_SSL`, and `enviar_asignaciones_masivas()` returns `(exitosos, fallidos)`. A
-  participant with no email is a logged warning + a failure count, never an exception.
-- `templates/email_template.py` — `EmailTemplate`: subject and body (plain text + HTML), Spanish.
+  `smtplib.SMTP_SSL`, and `send_assignments()` returns `(successful, failed)`. A participant with no
+  email is a logged warning + a failure count, never an exception. The fallback body copy is Spanish.
+- `templates/email_template.py` — `EmailTemplate`: `SUBJECT`, `render_body()` and `render_html()`
+  (Spanish copy).
 - `utils/logger.py` — `get_logger()`: singleton, UTF-8 console (INFO) + `logs/invisible_friend.log`
-  (DEBUG). `utils/file_handler.py` — JSON save/load, UTF-8, `ensure_ascii=False`.
+  (DEBUG). `utils/file_handler.py` — `save_json` / `load_json` / `save_assignments`, UTF-8,
+  `ensure_ascii=False`.
 - `__main__.py` — `InvisibleFriendApp` (wires everything) + `parse_args()` / `main()`
-  (`--enviar`, `--config`, `--output`, `--version`). `main.py` at the root is a thin launcher.
+  (`--send`, `--config`, `--output`, `--version`). `main.py` at the root is a thin launcher.
   `__init__.py` exposes `__version__` from installed metadata.
 
 ## Conventions
 - Read configuration from the `Config` object, never scattered `os.getenv` or a second
   `yaml.safe_load`. New code logs via `get_logger(__name__)`, not `print` (the `print`s in
-  `__main__.py` and `imprimir_asignaciones()` are the deliberate CLI output).
+  `__main__.py` and `print_assignments()` are the deliberate CLI output).
 - Type-hint new public functions (`mypy` runs with `disallow_untyped_defs`). Raise the project's own
   exceptions, never a bare `Exception`; chain with `raise ... from e`.
 - Layering points downward only: `models`/`validators` never import a service; no service imports

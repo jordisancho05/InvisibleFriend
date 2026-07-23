@@ -36,7 +36,7 @@ don't restate its steps here.
   §Invariants): the result is a **single cycle** (no fixed points, no sub-cycles), restrictions are
   **symmetric**, and a stricter rule may make the problem unsatisfiable → plan the `AssignmentError`
   path too.
-- **Randomness**: `generar_asignaciones()` shuffles. Any step touching it must be pinned by
+- **Randomness**: `generate_assignments()` shuffles. Any step touching it must be pinned by
   *invariant* tests or a seeded `random`, never by one hard-coded expected mapping.
 - **Personal data**: real participant names/emails live only in the gitignored `config/settings.yaml`,
   `output/` and `logs/`. Plans, tests, fixtures and docs use **fake names** (Alice/Bob/…).

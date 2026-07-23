@@ -1,7 +1,7 @@
-"""Tests del punto de entrada CLI.
+"""Tests for the CLI entry point.
 
-Lo crítico aquí es que el envío real sea **opt-in**: la ejecución por defecto
-nunca debe tocar la red.
+The critical thing here is that real delivery is **opt-in**: the default run
+must never touch the network.
 """
 
 from pathlib import Path
@@ -10,109 +10,113 @@ import pytest
 
 from invisible_friend.__main__ import InvisibleFriendApp, main, parse_args
 
-YAML_MINIMO = """
-personas:
-  - nombre: "Alice"
+MINIMAL_YAML = """
+participants:
+  - name: "Alice"
     email: "alice@example.com"
-  - nombre: "Bob"
+  - name: "Bob"
     email: "bob@example.com"
-  - nombre: "Charlie"
+  - name: "Charlie"
     email: "charlie@example.com"
 """
 
 
 @pytest.fixture
-def entorno(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Proyecto de mentira: settings.yaml propio y secretos de pega."""
+def environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Fake project: its own settings.yaml and dummy secrets."""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("MAILSENDER", "sender@example.com")
     monkeypatch.setenv("PASSWORD", "app-password")
-    ruta = tmp_path / "settings.yaml"
-    ruta.write_text(YAML_MINIMO, encoding="utf-8")
-    return ruta
+    path = tmp_path / "settings.yaml"
+    path.write_text(MINIMAL_YAML, encoding="utf-8")
+    return path
 
 
-def test_por_defecto_simula(entorno: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Sin flags, los emails se simulan: simular=True."""
-    llamadas: list[bool] = []
+def test_default_simulates(environment: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """With no flags, the emails are simulated: simulate=True."""
+    calls: list[bool] = []
     monkeypatch.setattr(
-        "invisible_friend.services.email_service.EmailService.enviar_asignaciones_masivas",
-        lambda self, asignaciones, personas, simular=False: (llamadas.append(simular), (0, 0))[1],
+        "invisible_friend.services.email_service.EmailService.send_assignments",
+        lambda self, assignments, emails, simulate=False: (calls.append(simulate), (0, 0))[1],
     )
 
-    app = InvisibleFriendApp(entorno)
-    app.ejecutar_completo()
+    app = InvisibleFriendApp(environment)
+    app.run()
 
-    assert llamadas == [True]
+    assert calls == [True]
 
 
-def test_flag_enviar_activa_el_envio(entorno: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Con enviar=True se pide un envío real: simular=False."""
-    llamadas: list[bool] = []
+def test_send_flag_enables_delivery(environment: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """With send=True a real delivery is requested: simulate=False."""
+    calls: list[bool] = []
     monkeypatch.setattr(
-        "invisible_friend.services.email_service.EmailService.enviar_asignaciones_masivas",
-        lambda self, asignaciones, personas, simular=False: (llamadas.append(simular), (3, 0))[1],
+        "invisible_friend.services.email_service.EmailService.send_assignments",
+        lambda self, assignments, emails, simulate=False: (calls.append(simulate), (3, 0))[1],
     )
 
-    app = InvisibleFriendApp(entorno)
-    app.ejecutar_completo(enviar=True)
+    app = InvisibleFriendApp(environment)
+    app.run(send=True)
 
-    assert llamadas == [False]
+    assert calls == [False]
 
 
-def test_parse_args_por_defecto_no_envia() -> None:
-    """El default de --enviar es False: hay que pedirlo explícitamente."""
+def test_parse_args_defaults_to_not_sending() -> None:
+    """The default of --send is False: it must be requested explicitly."""
     args = parse_args([])
 
-    assert args.enviar is False
+    assert args.send is False
     assert args.config == Path("config/settings.yaml")
-    assert args.output == Path("output/asignaciones.json")
+    assert args.output == Path("output/assignments.json")
 
 
-def test_parse_args_acepta_los_flags() -> None:
-    """--enviar, --config y --output se parsean como toca."""
-    args = parse_args(["--enviar", "--config", "otro.yaml", "--output", "salida.json"])
+def test_parse_args_accepts_the_flags() -> None:
+    """--send, --config and --output are parsed as expected."""
+    args = parse_args(["--send", "--config", "other.yaml", "--output", "out.json"])
 
-    assert args.enviar is True
-    assert args.config == Path("otro.yaml")
-    assert args.output == Path("salida.json")
+    assert args.send is True
+    assert args.config == Path("other.yaml")
+    assert args.output == Path("out.json")
 
 
-def test_main_usa_la_ruta_de_config_indicada(
-    entorno: Path, monkeypatch: pytest.MonkeyPatch
+def test_old_spanish_flag_no_longer_exists(environment: Path) -> None:
+    """The former Spanish send flag is gone: argparse rejects it."""
+    with pytest.raises(SystemExit):
+        parse_args(["--enviar"])
+
+
+def test_main_uses_the_given_config_path(
+    environment: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """--config manda: la app se construye con ese YAML."""
+    """--config wins: the app is built with that YAML."""
     monkeypatch.setattr(
-        "invisible_friend.services.email_service.EmailService.enviar_asignaciones_masivas",
-        lambda self, asignaciones, personas, simular=False: (0, 0),
+        "invisible_friend.services.email_service.EmailService.send_assignments",
+        lambda self, assignments, emails, simulate=False: (0, 0),
     )
 
-    codigo = main(["--config", str(entorno), "--output", str(entorno.parent / "out.json")])
+    code = main(["--config", str(environment), "--output", str(environment.parent / "out.json")])
 
-    assert codigo == 0
-    assert (entorno.parent / "out.json").exists()
+    assert code == 0
+    assert (environment.parent / "out.json").exists()
 
 
-def test_main_devuelve_1_si_falla_la_config(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Un YAML inexistente termina con código de salida 1, sin traza cruda."""
+def test_main_returns_1_when_config_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A missing YAML exits with code 1, with no raw traceback."""
     monkeypatch.chdir(tmp_path)
 
-    assert main(["--config", str(tmp_path / "no_existe.yaml")]) == 1
+    assert main(["--config", str(tmp_path / "does_not_exist.yaml")]) == 1
 
 
-def test_guarda_las_asignaciones_en_el_output(
-    entorno: Path, monkeypatch: pytest.MonkeyPatch
+def test_saves_the_assignments_to_the_output(
+    environment: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """El JSON de asignaciones se escribe en la ruta pedida."""
+    """The assignments JSON is written to the requested path."""
     monkeypatch.setattr(
-        "invisible_friend.services.email_service.EmailService.enviar_asignaciones_masivas",
-        lambda self, asignaciones, personas, simular=False: (0, 0),
+        "invisible_friend.services.email_service.EmailService.send_assignments",
+        lambda self, assignments, emails, simulate=False: (0, 0),
     )
-    destino = entorno.parent / "resultado.json"
+    destination = environment.parent / "result.json"
 
-    app = InvisibleFriendApp(entorno)
-    app.ejecutar_completo(output_path=destino)
+    app = InvisibleFriendApp(environment)
+    app.run(output_path=destination)
 
-    assert destino.exists()
+    assert destination.exists()

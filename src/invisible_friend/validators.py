@@ -1,67 +1,67 @@
-"""Validadores para parejas y restricciones."""
+"""Validators for pairs and restrictions."""
 
 from invisible_friend.exceptions import ValidationError
-from invisible_friend.models import Persona
+from invisible_friend.models import Person
 
 
-class ParejaValidator:
-    """Valida si dos personas pueden ser asignadas como amigos invisibles."""
+class PairValidator:
+    """Decides whether two people may be assigned as secret friends."""
 
-    def __init__(self, restricciones: list[list[str]]) -> None:
+    def __init__(self, restrictions: list[list[str]]) -> None:
         """
-        Inicializa el validador.
+        Initialize the validator.
 
         Args:
-            restricciones: Lista de pares de nombres que no pueden ser asignados juntos
+            restrictions: List of name pairs that must not be assigned together
         """
-        # Convertir a frozensets para búsqueda bidireccional eficiente
-        self.restricciones: set[frozenset] = {frozenset(par) for par in restricciones}
+        # Store as frozensets for efficient bidirectional lookup.
+        self.restrictions: set[frozenset[str]] = {frozenset(pair) for pair in restrictions}
 
-    def es_pareja_valida(self, persona1: Persona, persona2: Persona) -> bool:
+    def is_valid_pair(self, person1: Person, person2: Person) -> bool:
         """
-        Verifica si dos personas pueden ser asignadas juntas.
+        Check whether two people may be assigned together.
 
         Args:
-            persona1: Primera persona
-            persona2: Segunda persona
+            person1: First person
+            person2: Second person
 
         Returns:
-            True si la pareja es válida, False en caso contrario
+            True if the pair is valid, False otherwise
         """
-        if persona1 == persona2:
+        if person1 == person2:
             return False
 
-        pareja = frozenset([persona1.nombre, persona2.nombre])
-        return pareja not in self.restricciones
+        pair = frozenset([person1.name, person2.name])
+        return pair not in self.restrictions
 
-    def validar_ciclo(self, personas_ordenadas: list[Persona]) -> bool:
+    def validate_cycle(self, ordered_participants: list[Person]) -> bool:
         """
-        Valida que un ciclo completo sea válido.
+        Validate that a full cycle is valid.
 
         Args:
-            personas_ordenadas: Lista de personas en orden de asignación cíclica
+            ordered_participants: People in cyclic assignment order
 
         Returns:
-            True si todas las asignaciones son válidas
+            True if every assignment is valid
         """
-        if not personas_ordenadas:
-            raise ValidationError("Lista de personas vacía")
+        if not ordered_participants:
+            raise ValidationError("Empty participant list")
 
-        for i, persona in enumerate(personas_ordenadas):
-            siguiente = personas_ordenadas[(i + 1) % len(personas_ordenadas)]
-            if not self.es_pareja_valida(persona, siguiente):
+        for i, person in enumerate(ordered_participants):
+            next_person = ordered_participants[(i + 1) % len(ordered_participants)]
+            if not self.is_valid_pair(person, next_person):
                 return False
 
         return True
 
-    def agregar_restriccion(self, persona1: str, persona2: str) -> None:
-        """Añade una nueva restricción."""
-        self.restricciones.add(frozenset([persona1, persona2]))
+    def add_restriction(self, person1: str, person2: str) -> None:
+        """Add a new restriction."""
+        self.restrictions.add(frozenset([person1, person2]))
 
-    def remover_restriccion(self, persona1: str, persona2: str) -> None:
-        """Remueve una restricción existente."""
-        self.restricciones.discard(frozenset([persona1, persona2]))
+    def remove_restriction(self, person1: str, person2: str) -> None:
+        """Remove an existing restriction."""
+        self.restrictions.discard(frozenset([person1, person2]))
 
-    def obtener_restricciones(self) -> list[tuple[str, str]]:
-        """Retorna todas las restricciones como tuplas."""
-        return [tuple(sorted(par)) for par in self.restricciones]
+    def get_restrictions(self) -> list[tuple[str, ...]]:
+        """Return every restriction as a sorted tuple."""
+        return [tuple(sorted(pair)) for pair in self.restrictions]

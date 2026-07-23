@@ -1,49 +1,49 @@
-"""Fixtures compartidas por toda la suite.
+"""Fixtures shared across the whole suite.
 
-Todos los datos son ficticios: los participantes reales viven únicamente en
-`config/settings.yaml`, que no se versiona y ningún test debe leer.
+All the data is fictional: the real participants live only in
+`config/settings.yaml`, which is not versioned and no test should read.
 """
 
 import pytest
 
-from invisible_friend.models import Persona
+from invisible_friend.models import Person
 from invisible_friend.services.email_service import EmailService
 from invisible_friend.services.secret_santa import SecretSantaService
-from invisible_friend.validators import ParejaValidator
+from invisible_friend.validators import PairValidator
 
 
 @pytest.fixture
-def personas() -> list[Persona]:
-    """Cuatro participantes ficticios."""
+def participants() -> list[Person]:
+    """Four fictional participants."""
     return [
-        Persona("Alice", "alice@example.com"),
-        Persona("Bob", "bob@example.com"),
-        Persona("Charlie", "charlie@example.com"),
-        Persona("Diana", "diana@example.com"),
+        Person("Alice", "alice@example.com"),
+        Person("Bob", "bob@example.com"),
+        Person("Charlie", "charlie@example.com"),
+        Person("Diana", "diana@example.com"),
     ]
 
 
 @pytest.fixture
-def restricciones() -> list[list[str]]:
-    """Dos parejas prohibidas."""
+def restrictions() -> list[list[str]]:
+    """Two forbidden pairs."""
     return [["Alice", "Bob"], ["Charlie", "Diana"]]
 
 
 @pytest.fixture
-def validator(restricciones: list[list[str]]) -> ParejaValidator:
-    """Validador cargado con las restricciones ficticias."""
-    return ParejaValidator(restricciones)
+def validator(restrictions: list[list[str]]) -> PairValidator:
+    """Validator loaded with the fictional restrictions."""
+    return PairValidator(restrictions)
 
 
 @pytest.fixture
-def service(validator: ParejaValidator) -> SecretSantaService:
-    """Servicio de asignaciones con el validador ficticio."""
-    return SecretSantaService(validator, max_intentos=100)
+def service(validator: PairValidator) -> SecretSantaService:
+    """Assignment service with the fictional validator."""
+    return SecretSantaService(validator, max_attempts=100)
 
 
 @pytest.fixture
 def email_service() -> EmailService:
-    """Servicio de email apuntando a un SMTP ficticio (nunca se conecta)."""
+    """Email service pointing at a fictional SMTP (never connects)."""
     return EmailService(
         smtp_server="smtp.example.com",
         smtp_port=465,

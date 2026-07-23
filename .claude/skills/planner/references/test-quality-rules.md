@@ -10,7 +10,7 @@ subtask. Build/test via `@.claude/skills/references/common-commands.md` (`pytest
 defines **how the tests themselves are written**.
 
 ## Style per layer
-- **Pure domain** (`models.py`, `validators.py`) → plain `pytest` unit tests, no I/O. Build `Persona`
+- **Pure domain** (`models.py`, `validators.py`) → plain `pytest` unit tests, no I/O. Build `Person`
   objects with fake data, assert the boolean/exception. Restrictions are symmetric: test `A-B`
   **and** `B-A`. Use `@pytest.mark.parametrize` for the validation branches (empty name, invalid
   email, self-pairing). E.g. `tests/test_validators.py`.
@@ -26,7 +26,7 @@ defines **how the tests themselves are written**.
 - **Email service** (`services/email_service.py`) → **never open a socket**. Patch
   `smtplib.SMTP_SSL` with `unittest.mock.patch` and assert on the mock (login called with the sender,
   `sendmail` called with the right recipient, the `with` block entered). For bulk sends prefer
-  `simular=True` and assert the returned `(exitosos, fallidos)` — including that a participant
+  `simulate=True` and assert the returned `(successful, failed)` — including that a participant
   without an email counts as failed and doesn't raise. An SMTP error must surface as `EmailError`.
   E.g. `tests/test_email_service.py`.
 - **Templates** (`templates/email_template.py`) → pure string assertions: the rendered body contains

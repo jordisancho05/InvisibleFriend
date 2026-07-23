@@ -7,7 +7,7 @@ Una aplicación profesional y escalable para generar y enviar asignaciones de **
 ✅ **Generación inteligente de asignaciones** - Algoritmo cíclico que forma un ciclo perfecto
 ✅ **Validación de restricciones** - Evita parejas prohibidas configurables
 ✅ **Envío de emails** - Integración con Gmail SMTP
-✅ **Envío explícito** - Por defecto simula; solo `--enviar` abre conexión real
+✅ **Envío explícito** - Por defecto simula; solo `--send` abre conexión real
 ✅ **Configuración centralizada** - YAML + variables de entorno
 ✅ **Type hints completos** - Verificado con mypy
 ✅ **Logging extenso** - Rastreo de eventos y errores
@@ -25,7 +25,7 @@ Pinvisiblefriend/
 │   ├── __init__.py              # __version__ (leído de los metadatos)
 │   ├── __main__.py              # CLI: InvisibleFriendApp + argparse
 │   ├── config.py                # Gestión de configuración (YAML + .env)
-│   ├── models.py                # Dataclasses (Persona, Asignacion, ConfigData)
+│   ├── models.py                # Dataclasses (Person, Assignment, ConfigData)
 │   ├── exceptions.py            # Excepciones personalizadas
 │   ├── validators.py            # Validación de parejas
 │   ├── services/
@@ -102,8 +102,8 @@ Se generan en [myaccount.google.com/apppasswords](https://myaccount.google.com/a
 | `app.max_attempts` | Intentos máximos para encontrar un ciclo válido | `100` |
 | `email.smtp_server` | Servidor SMTP | `smtp.gmail.com` |
 | `email.smtp_port` | Puerto SMTP (SSL) | `465` |
-| `personas` | Lista de `{nombre, email}` participantes | — |
-| `restricciones` | Pares `[A, B]` que no pueden tocarse | `[]` |
+| `participants` | Lista de `{name, email}` participantes | — |
+| `restrictions` | Pares `[A, B]` que no pueden tocarse | `[]` |
 
 Las restricciones son **bidireccionales**: `["Alice", "Bob"]` impide tanto que Alice
 le regale a Bob como al revés.
@@ -149,11 +149,11 @@ python main.py
 ```
 
 Genera las asignaciones, las muestra por consola, las guarda en
-`output/asignaciones.json` y **simula** el envío sin abrir ninguna conexión.
+`output/assignments.json` y **simula** el envío sin abrir ninguna conexión.
 
 ### Con envío real de emails
 ```bash
-python main.py --enviar
+python main.py --send
 ```
 
 ### Opciones disponibles
@@ -163,16 +163,16 @@ python main.py --help
 
 | Flag | Descripción | Por defecto |
 |------|-------------|-------------|
-| `--enviar` | Envía los emails de verdad | desactivado (simula) |
+| `--send` | Envía los emails de verdad | desactivado (simula) |
 | `--config PATH` | Ruta al YAML de participantes | `config/settings.yaml` |
-| `--output PATH` | Dónde guardar el JSON de asignaciones | `output/asignaciones.json` |
+| `--output PATH` | Dónde guardar el JSON de asignaciones | `output/assignments.json` |
 | `--version` | Muestra la versión | — |
 
 ### Formas equivalentes de ejecutarlo
 ```bash
-python main.py --enviar             # lanzador desde la raíz
-python -m invisible_friend --enviar # como módulo
-invisible-friend --enviar           # console script (tras pip install)
+python main.py --send             # lanzador desde la raíz
+python -m invisible_friend --send # como módulo
+invisible-friend --send           # console script (tras pip install)
 ```
 
 ### Uso programático
@@ -181,10 +181,10 @@ from pathlib import Path
 from invisible_friend.__main__ import InvisibleFriendApp
 
 app = InvisibleFriendApp(Path("config/settings.yaml"))
-asignaciones = app.generar_asignaciones()
-app.mostrar_asignaciones(asignaciones)
-app.guardar_asignaciones(asignaciones)
-app.enviar_emails(asignaciones, simular=True)
+assignments = app.generate_assignments()
+app.show_assignments(assignments)
+app.save_assignments(assignments)
+app.send_emails(assignments, simulate=True)
 ```
 
 ---
@@ -219,7 +219,7 @@ mypy src            # verificación de tipos
 | Módulo | Responsabilidad |
 |--------|-----------------|
 | **Config** | Cargar YAML, variables de entorno, validar configuración |
-| **ParejaValidator** | Validar pares permitidos/prohibidos de forma bidireccional |
+| **PairValidator** | Validar pares permitidos/prohibidos de forma bidireccional |
 | **SecretSantaService** | Generar ciclos válidos de asignaciones |
 | **EmailService** | Crear y enviar emails vía SMTP |
 | **EmailTemplate** | Cuerpo del email en texto plano y HTML |

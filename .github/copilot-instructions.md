@@ -10,11 +10,14 @@ each participant their assigned person over Gmail SMTP. Packaged app under `src/
 - **Never commit secrets or personal data.** `MAILSENDER` / `PASSWORD` live in the root `.env`; the
   participants' real names and emails live in `config/settings.yaml`; `output/` and `logs/` hold
   generated copies. All gitignored — only the `*.example.*` templates (fake names) are versioned.
-- **Sending email is opt-in**: the default run simulates; only `--enviar` opens an SMTP connection.
-- **Code language split**: comments, logs, docstrings and the domain vocabulary (`Persona`,
-  `generar_asignaciones`) in **Spanish** — don't translate them, nor the user-facing email copy.
+- **Sending email is opt-in**: the default run simulates; only `--send` opens an SMTP connection.
+- **Language split**: code is **English** (identifiers, docstrings, comments, logs, console, CLI).
+  **Spanish is used ONLY for the participant email copy** — the subject and bodies in
+  `templates/email_template.py` and the plain-text fallback in `email_service.py`. Don't translate
+  those, and don't add Spanish anywhere else.
 - **Tests never touch the outside world**: no SMTP socket, no real `.env` / `settings.yaml`. Patch
-  `smtplib.SMTP_SSL`, use `tmp_path` / `monkeypatch`, fake names only.
+  `smtplib.SMTP_SSL`, use `tmp_path` / `monkeypatch`, fake names only. Email-copy assertions stay
+  Spanish.
 - **Don't commit or push** unless explicitly asked.
 
 ## Stack
@@ -28,28 +31,30 @@ each participant their assigned person over Gmail SMTP. Packaged app under `src/
 ```powershell
 pip install -e ".[dev]"          # editable install + dev tools
 python main.py                    # generate → print → save JSON → SIMULATE the emails
-python main.py --enviar           # actually send
+python main.py --send             # actually send
 # equivalent: python -m invisible_friend | invisible-friend (console script)
 pytest                            # test suite (no network, no SMTP)
 ruff check . ; mypy src           # lint + types
 ```
 
 ## Architecture (`src/invisible_friend/`)
-- `config.py` — `Config`: root `.env` + YAML → `ConfigData`; missing/malformed → `ConfigError`.
-- `models.py` — `Persona` (mandatory valid email; equality/hash **by name**), `Asignacion` (no
-  self-assignment), `ConfigData`.
+- `config.py` — `Config`: root `.env` + YAML → `ConfigData`; missing/malformed (and a participant
+  without a `name`) → `ConfigError`.
+- `models.py` — `Person` (mandatory valid email; equality/hash **by name**), `Assignment`
+  (`giver`/`receiver`, no self-assignment), `ConfigData`.
 - `exceptions.py` — `InvisibleFriendError` + `ConfigError` / `EmailError` / `ValidationError` /
   `AssignmentError`.
-- `validators.py` — `ParejaValidator`: symmetric restrictions (`frozenset`), `es_pareja_valida()`,
-  `validar_ciclo()` (includes the wrap-around edge).
-- `services/secret_santa.py` — shuffle + build the cycle `persona[i] → persona[(i+1) % n]`, retry to
-  `max_intentos`; `AssignmentError` with <2 people or on exhaustion.
-- `services/email_service.py` — `SMTP_SSL` send; `enviar_asignaciones_masivas()` → `(exitosos,
-  fallidos)`; a participant with no email is a warning + a failure, not an exception.
-- `templates/email_template.py` — subject + body (text and HTML), Spanish.
-- `utils/` — `get_logger()` (console INFO + `logs/` DEBUG) and `FileHandler` (JSON, UTF-8).
-- `__main__.py` — `InvisibleFriendApp` + `parse_args()` / `main()` (`--enviar`, `--config`,
-  `--output`, `--version`); root `main.py` is a thin launcher; `__init__.py` exposes `__version__`.
+- `validators.py` — `PairValidator`: symmetric restrictions (`frozenset`), `is_valid_pair()`,
+  `validate_cycle()` (includes the wrap-around edge).
+- `services/secret_santa.py` — shuffle + build the cycle `person[i] → person[(i+1) % n]`, retry to
+  `max_attempts`; `AssignmentError` with <2 participants or on exhaustion.
+- `services/email_service.py` — `SMTP_SSL` send; `send_assignments()` → `(successful, failed)`; a
+  participant with no email is a warning + a failure, not an exception. Fallback body copy is Spanish.
+- `templates/email_template.py` — `SUBJECT` + `render_body()` / `render_html()` (Spanish copy).
+- `utils/` — `get_logger()` (console INFO + `logs/` DEBUG) and `FileHandler`
+  (`save_json` / `load_json` / `save_assignments`, UTF-8).
+- `__main__.py` — `InvisibleFriendApp` + `parse_args()` / `main()` (`--send`, `--config`, `--output`,
+  `--version`); root `main.py` is a thin launcher; `__init__.py` exposes `__version__`.
 
 ## Conventions
 - Read config from the `Config` object, not scattered `os.getenv`. New code logs via

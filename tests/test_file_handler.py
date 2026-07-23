@@ -1,4 +1,4 @@
-"""Tests para FileHandler: persistencia JSON de las asignaciones."""
+"""Tests for FileHandler: JSON persistence of the assignments."""
 
 import json
 from pathlib import Path
@@ -9,58 +9,58 @@ from invisible_friend.exceptions import InvisibleFriendError
 from invisible_friend.utils.file_handler import FileHandler
 
 
-def test_guardar_y_cargar_conserva_los_datos(tmp_path: Path) -> None:
-    """Ida y vuelta por disco sin pérdida."""
-    ruta = tmp_path / "datos.json"
-    datos = {"asignaciones": {"Alice": "Bob"}, "total_personas": 2}
+def test_save_and_load_preserves_the_data(tmp_path: Path) -> None:
+    """Round-trip through disk with no loss."""
+    path = tmp_path / "data.json"
+    data = {"assignments": {"Alice": "Bob"}, "total_participants": 2}
 
-    FileHandler.guardar_json(ruta, datos)
+    FileHandler.save_json(path, data)
 
-    assert FileHandler.cargar_json(ruta) == datos
-
-
-def test_guardar_conserva_acentos_y_enies(tmp_path: Path) -> None:
-    """El JSON se escribe en UTF-8 legible, sin escapar los no-ASCII."""
-    ruta = tmp_path / "datos.json"
-
-    FileHandler.guardar_json(ruta, {"asignaciones": {"Begoña": "Martín"}})
-
-    contenido = ruta.read_text(encoding="utf-8")
-    assert "Begoña" in contenido
-    assert "Martín" in contenido
-    assert "\\u" not in contenido
+    assert FileHandler.load_json(path) == data
 
 
-def test_guardar_crea_los_directorios_intermedios(tmp_path: Path) -> None:
-    """No hace falta crear output/ a mano antes de guardar."""
-    ruta = tmp_path / "output" / "anidado" / "datos.json"
+def test_save_preserves_accents_and_special_chars(tmp_path: Path) -> None:
+    """The JSON is written as readable UTF-8, without escaping non-ASCII."""
+    path = tmp_path / "data.json"
 
-    FileHandler.guardar_json(ruta, {"ok": True})
+    FileHandler.save_json(path, {"assignments": {"Begoña": "Martín"}})
 
-    assert ruta.exists()
-
-
-def test_cargar_archivo_inexistente_lanza_error(tmp_path: Path) -> None:
-    """Leer algo que no está es un error del proyecto, no un FileNotFoundError suelto."""
-    with pytest.raises(InvisibleFriendError, match="no encontrado"):
-        FileHandler.cargar_json(tmp_path / "no_existe.json")
+    content = path.read_text(encoding="utf-8")
+    assert "Begoña" in content
+    assert "Martín" in content
+    assert "\\u" not in content
 
 
-def test_cargar_json_corrupto_lanza_error(tmp_path: Path) -> None:
-    """Un JSON malformado se traduce al error del dominio."""
-    ruta = tmp_path / "roto.json"
-    ruta.write_text("{esto no es json", encoding="utf-8")
+def test_save_creates_intermediate_directories(tmp_path: Path) -> None:
+    """No need to create output/ by hand before saving."""
+    path = tmp_path / "output" / "nested" / "data.json"
+
+    FileHandler.save_json(path, {"ok": True})
+
+    assert path.exists()
+
+
+def test_load_missing_file_raises_error(tmp_path: Path) -> None:
+    """Reading something that is not there is a project error, not a bare FileNotFoundError."""
+    with pytest.raises(InvisibleFriendError, match="not found"):
+        FileHandler.load_json(tmp_path / "missing.json")
+
+
+def test_load_corrupt_json_raises_error(tmp_path: Path) -> None:
+    """A malformed JSON is translated into the domain error."""
+    path = tmp_path / "broken.json"
+    path.write_text("{this is not json", encoding="utf-8")
 
     with pytest.raises(InvisibleFriendError):
-        FileHandler.cargar_json(ruta)
+        FileHandler.load_json(path)
 
 
-def test_guardar_asignaciones_envuelve_con_el_total(tmp_path: Path) -> None:
-    """El archivo de asignaciones lleva el mapa y el número de participantes."""
-    ruta = tmp_path / "asignaciones.json"
-    asignaciones = {"Alice": "Bob", "Bob": "Charlie", "Charlie": "Alice"}
+def test_save_assignments_wraps_with_the_total(tmp_path: Path) -> None:
+    """The assignments file carries the mapping and the participant count."""
+    path = tmp_path / "assignments.json"
+    assignments = {"Alice": "Bob", "Bob": "Charlie", "Charlie": "Alice"}
 
-    FileHandler.guardar_asignaciones(ruta, asignaciones)
+    FileHandler.save_assignments(path, assignments)
 
-    guardado = json.loads(ruta.read_text(encoding="utf-8"))
-    assert guardado == {"asignaciones": asignaciones, "total_personas": 3}
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    assert saved == {"assignments": assignments, "total_participants": 3}

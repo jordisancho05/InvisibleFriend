@@ -194,8 +194,6 @@ pip-selfcheck.json
 # Los secretos viven en el .env de la raíz (ya ignorado en "Environments").
 # El settings.yaml lleva nombres y emails reales de los participantes.
 config/settings.yaml
-!.env.example
-!config/settings.example.yaml
 
 # Datos personales generados en tiempo de ejecución
 # (ambos directorios se crean solos: file_handler.py y logger.py)
