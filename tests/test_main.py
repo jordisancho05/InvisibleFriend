@@ -35,9 +35,19 @@ def environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def test_default_simulates(environment: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """With no flags, the emails are simulated: simulate=True."""
     calls: list[bool] = []
+
+    def fake_send(
+        self: object,
+        assignments: dict[str, str],
+        emails: dict[str, str],
+        simulate: bool = False,
+    ) -> tuple[int, int]:
+        calls.append(simulate)
+        return (0, 0)
+
     monkeypatch.setattr(
         "invisible_friend.services.email_service.EmailService.send_assignments",
-        lambda self, assignments, emails, simulate=False: (calls.append(simulate), (0, 0))[1],
+        fake_send,
     )
 
     app = InvisibleFriendApp(environment)
@@ -49,9 +59,19 @@ def test_default_simulates(environment: Path, monkeypatch: pytest.MonkeyPatch) -
 def test_send_flag_enables_delivery(environment: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """With send=True a real delivery is requested: simulate=False."""
     calls: list[bool] = []
+
+    def fake_send(
+        self: object,
+        assignments: dict[str, str],
+        emails: dict[str, str],
+        simulate: bool = False,
+    ) -> tuple[int, int]:
+        calls.append(simulate)
+        return (3, 0)
+
     monkeypatch.setattr(
         "invisible_friend.services.email_service.EmailService.send_assignments",
-        lambda self, assignments, emails, simulate=False: (calls.append(simulate), (3, 0))[1],
+        fake_send,
     )
 
     app = InvisibleFriendApp(environment)
