@@ -1,0 +1,36 @@
+# Configuración de la aplicación Invisible Friend
+# Copia este archivo a settings.yaml y rellena con TUS datos
+
+# Configuración de la aplicación
+app:
+  name: Invisible Friend
+  version: 1.0.0
+  description: "Generador de asignaciones de Amigo Invisible"
+  max_attempts: 100
+
+# Configuración SMTP para envío de emails
+email:
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 465
+
+# Lista de personas participantes
+# ⚠️ IMPORTANTE: Email es OBLIGATORIO para cada persona
+personas:
+  - nombre: "Persona 1"
+    email: "persona1@example.com"
+  
+  - nombre: "Persona 2"
+    email: "persona2@example.com"
+  
+  - nombre: "Persona 3"
+    email: "persona3@example.com"
+  
+  - nombre: "Persona 4"
+    email: "persona4@example.com"
+
+# Parejas que NO pueden ser asignadas juntas
+# Formato: [Persona1, Persona2]
+# Ejemplo: Si no quieres que Persona1 sea amigo invisible de Persona2
+restricciones:
+  - ["Persona1", "Persona2"]
+  - ["Persona3", "Persona4"]
