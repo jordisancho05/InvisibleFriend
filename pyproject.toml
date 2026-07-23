@@ -24,7 +24,10 @@ dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.1",
-    "ruff>=0.6.0",
+    # Pinned to a minor series: the formatter's behaviour changes between minors
+    # (0.16 started formatting Python blocks inside Markdown), so an unpinned
+    # floor makes CI diverge from local checkouts.
+    "ruff>=0.16,<0.17",
     "mypy>=1.4.1",
     "types-PyYAML>=6.0",
 ]
