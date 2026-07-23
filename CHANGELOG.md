@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CI**: `.github/workflows/ci.yml` runs on every pull request to `master` (and on push to `master`):
+  a lint/type-check job (`ruff check`, `ruff format --check`, `mypy src`) plus a test job across
+  Python 3.11/3.12/3.13 (`pytest` with coverage). No secrets needed — the suite mocks SMTP and uses
+  temp config.
 - **Command-line interface**: `--send` (send for real; the default still only simulates),
   `--config PATH`, `--output PATH` and `--version`. Three equivalent entry points:
   `python main.py`, `python -m invisible_friend` and the `invisible-friend` console script.
