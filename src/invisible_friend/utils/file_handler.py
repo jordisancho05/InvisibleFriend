@@ -1,8 +1,9 @@
-"""Gestor de archivos para guardar y cargar datos."""
+"""File handler for saving and loading data."""
 
 import json
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any
+
 from invisible_friend.exceptions import InvisibleFriendError
 from invisible_friend.utils.logger import get_logger
 
@@ -10,69 +11,66 @@ logger = get_logger(__name__)
 
 
 class FileHandler:
-    """Gestor de lectura y escritura de datos a archivos."""
-    
+    """Handles reading and writing data to files."""
+
     @staticmethod
-    def guardar_json(ruta: Path, datos: Dict[str, Any]) -> None:
+    def save_json(path: Path, data: dict[str, Any]) -> None:
         """
-        Guarda datos en formato JSON.
-        
+        Save data as JSON.
+
         Args:
-            ruta: Ruta del archivo
-            datos: Datos a guardar
-            
+            path: File path
+            data: Data to save
+
         Raises:
-            InvisibleFriendError: Si hay error al guardar
+            InvisibleFriendError: If saving fails
         """
         try:
-            ruta.parent.mkdir(parents=True, exist_ok=True)
-            with open(ruta, 'w', encoding='utf-8') as f:
-                json.dump(datos, f, indent=2, ensure_ascii=False)
-            logger.info(f"Datos guardados en {ruta}")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            logger.info(f"Data saved to {path}")
         except Exception as e:
-            logger.error(f"Error al guardar archivo {ruta}: {e}")
-            raise InvisibleFriendError(f"Error al guardar JSON: {e}")
-    
+            logger.error(f"Error saving file {path}: {e}")
+            raise InvisibleFriendError(f"Error saving JSON: {e}") from e
+
     @staticmethod
-    def cargar_json(ruta: Path) -> Dict[str, Any]:
+    def load_json(path: Path) -> dict[str, Any]:
         """
-        Carga datos desde JSON.
-        
+        Load data from JSON.
+
         Args:
-            ruta: Ruta del archivo
-            
+            path: File path
+
         Returns:
-            Datos cargados
-            
+            Loaded data
+
         Raises:
-            InvisibleFriendError: Si hay error al cargar
+            InvisibleFriendError: If loading fails
         """
         try:
-            if not ruta.exists():
-                raise InvisibleFriendError(f"Archivo no encontrado: {ruta}")
-            
-            with open(ruta, 'r', encoding='utf-8') as f:
-                datos = json.load(f)
-            logger.info(f"Datos cargados desde {ruta}")
-            return datos
+            if not path.exists():
+                raise InvisibleFriendError(f"File not found: {path}")
+
+            with open(path, encoding="utf-8") as f:
+                data: dict[str, Any] = json.load(f)
+            logger.info(f"Data loaded from {path}")
+            return data
         except json.JSONDecodeError as e:
-            logger.error(f"Error al parsear JSON {ruta}: {e}")
-            raise InvisibleFriendError(f"Error al cargar JSON: {e}")
+            logger.error(f"Error parsing JSON {path}: {e}")
+            raise InvisibleFriendError(f"Error loading JSON: {e}") from e
         except Exception as e:
-            logger.error(f"Error al cargar archivo {ruta}: {e}")
-            raise InvisibleFriendError(f"Error al cargar archivo: {e}")
-    
+            logger.error(f"Error loading file {path}: {e}")
+            raise InvisibleFriendError(f"Error loading file: {e}") from e
+
     @staticmethod
-    def guardar_asignaciones(ruta: Path, asignaciones: Dict[str, str]) -> None:
+    def save_assignments(path: Path, assignments: dict[str, str]) -> None:
         """
-        Guarda asignaciones en formato JSON humano.
-        
+        Save assignments as human-readable JSON.
+
         Args:
-            ruta: Ruta del archivo
-            asignaciones: Diccionario de asignaciones {quien: para_quien}
+            path: File path
+            assignments: Assignments dict {giver: receiver}
         """
-        datos = {
-            "asignaciones": asignaciones,
-            "total_personas": len(asignaciones)
-        }
-        FileHandler.guardar_json(ruta, datos)
+        data = {"assignments": assignments, "total_participants": len(assignments)}
+        FileHandler.save_json(path, data)

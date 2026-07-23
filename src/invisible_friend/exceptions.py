@@ -1,26 +1,31 @@
-"""Excepciones personalizadas para Invisible Friend."""
+"""Custom exceptions for Invisible Friend."""
 
 
 class InvisibleFriendError(Exception):
-    """Excepción base para el proyecto Invisible Friend."""
+    """Base exception for the Invisible Friend project."""
+
     pass
 
 
 class ConfigError(InvisibleFriendError):
-    """Error en la configuración."""
+    """Configuration error."""
+
     pass
 
 
 class EmailError(InvisibleFriendError):
-    """Error al enviar email."""
+    """Error while sending an email."""
+
     pass
 
 
 class ValidationError(InvisibleFriendError):
-    """Error de validación."""
+    """Validation error."""
+
     pass
 
 
 class AssignmentError(InvisibleFriendError):
-    """Error al generar asignaciones."""
+    """Error while generating the assignments."""
+
     pass

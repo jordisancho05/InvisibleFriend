@@ -1,97 +1,107 @@
-"""Tests para los validadores."""
+"""Tests for PairValidator: symmetric restrictions and cycle validation."""
 
-import unittest
-from invisible_friend.models import Persona
-from invisible_friend.validators import ParejaValidator
+import pytest
+
 from invisible_friend.exceptions import ValidationError
+from invisible_friend.models import Person
+from invisible_friend.validators import PairValidator
 
 
-class TestParejaValidator(unittest.TestCase):
-    """Tests para ParejaValidator."""
-    
-    def setUp(self) -> None:
-        """Configuración previa a cada test."""
-        self.restricciones = [
-            ["Alice", "Bob"],
-            ["Charlie", "Diana"],
-        ]
-        self.validator = ParejaValidator(self.restricciones)
-        
-        self.alice = Persona("Alice", "alice@example.com")
-        self.bob = Persona("Bob", "bob@example.com")
-        self.charlie = Persona("Charlie", "charlie@example.com")
-        self.diana = Persona("Diana", "diana@example.com")
-    
-    def test_pareja_valida_permitida(self) -> None:
-        """Test que verifica que parejas permitidas son válidas."""
-        self.assertTrue(self.validator.es_pareja_valida(self.alice, self.charlie))
-        self.assertTrue(self.validator.es_pareja_valida(self.bob, self.diana))
-    
-    def test_pareja_invalida_prohibida(self) -> None:
-        """Test que verifica que parejas prohibidas son inválidas."""
-        self.assertFalse(self.validator.es_pareja_valida(self.alice, self.bob))
-        self.assertFalse(self.validator.es_pareja_valida(self.bob, self.alice))
-        self.assertFalse(self.validator.es_pareja_valida(self.alice, self.alice))
-    
-    def test_pareja_misma_persona(self) -> None:
-        """Test que verifica que una persona no puede ser su propio amigo invisible."""
-        self.assertFalse(self.validator.es_pareja_valida(self.alice, self.alice))
-    
-    def test_validar_ciclo_valido(self) -> None:
-        """Test que verifica validación de ciclo válido."""
-        # Ciclo válido: Alice → Charlie → Bob → Diana → Alice
-        ciclo = [self.alice, self.charlie, self.bob, self.diana]
-        self.assertTrue(self.validator.validar_ciclo(ciclo))
-    
-    def test_validar_ciclo_invalido(self) -> None:
-        """Test que verifica validación de ciclo inválido."""
-        # Ciclo inválido: Alice → Bob (prohibido)
-        ciclo = [self.alice, self.bob, self.charlie, self.diana]
-        self.assertFalse(self.validator.validar_ciclo(ciclo))
-    
-    def test_agregar_restriccion(self) -> None:
-        """Test para agregar restricción."""
-        self.validator.agregar_restriccion("Alice", "Charlie")
-        self.assertFalse(self.validator.es_pareja_valida(self.alice, self.charlie))
-    
-    def test_remover_restriccion(self) -> None:
-        """Test para remover restricción."""
-        self.validator.remover_restriccion("Alice", "Bob")
-        self.assertTrue(self.validator.es_pareja_valida(self.alice, self.bob))
+def find(participants: list[Person], name: str) -> Person:
+    """Return the participant with that name (readability helper)."""
+    return next(p for p in participants if p.name == name)
 
 
-class TestPersonaModel(unittest.TestCase):
-    """Tests para el modelo Persona."""
-    
-    def test_persona_valida(self) -> None:
-        """Test que verifica creación de persona válida."""
-        persona = Persona("Juan", "juan@example.com")
-        self.assertEqual(persona.nombre, "Juan")
-        self.assertEqual(persona.email, "juan@example.com")
-    
-    def test_persona_sin_email(self) -> None:
-        """Test que verifica que el email es obligatorio."""
-        with self.assertRaises(ValidationError):
-            Persona("Juan", "")
-
-    def test_persona_nombre_vacio(self) -> None:
-        """Test que verifica validación de nombre vacío."""
-        with self.assertRaises(ValidationError):
-            Persona("", "juan@example.com")
-    
-    def test_persona_email_invalido(self) -> None:
-        """Test que verifica validación de email inválido."""
-        with self.assertRaises(ValidationError):
-            Persona("Juan", "email_invalido")
-    
-    def test_persona_hash(self) -> None:
-        """Test que verifica que personas se pueden usar en sets."""
-        p1 = Persona("Juan", "juan@example.com")
-        p2 = Persona("Juan", "otro@example.com")
-        
-        personas_set = {p1, p2}
-        self.assertEqual(len(personas_set), 1)  # Mismo nombre = mismo hash
+def test_allowed_pair_is_valid(validator: PairValidator, participants: list[Person]) -> None:
+    """Two participants with no restriction between them may be paired."""
+    assert validator.is_valid_pair(find(participants, "Alice"), find(participants, "Charlie"))
+    assert validator.is_valid_pair(find(participants, "Bob"), find(participants, "Diana"))
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize(
+    ("one", "other"),
+    [
+        ("Alice", "Bob"),
+        ("Bob", "Alice"),
+        ("Charlie", "Diana"),
+        ("Diana", "Charlie"),
+    ],
+)
+def test_forbidden_pair_is_rejected_both_ways(
+    validator: PairValidator, participants: list[Person], one: str, other: str
+) -> None:
+    """The restriction is symmetric: A-B and B-A are rejected alike."""
+    assert not validator.is_valid_pair(find(participants, one), find(participants, other))
+
+
+def test_nobody_can_be_their_own_secret_friend(
+    validator: PairValidator, participants: list[Person]
+) -> None:
+    """A person with themselves is never a valid pair."""
+    alice = find(participants, "Alice")
+    assert not validator.is_valid_pair(alice, alice)
+
+
+def test_cycle_without_forbidden_pairs_is_valid(
+    validator: PairValidator, participants: list[Person]
+) -> None:
+    """Alice → Charlie → Bob → Diana → Alice violates no restriction."""
+    cycle = [
+        find(participants, "Alice"),
+        find(participants, "Charlie"),
+        find(participants, "Bob"),
+        find(participants, "Diana"),
+    ]
+    assert validator.validate_cycle(cycle)
+
+
+def test_cycle_with_forbidden_pair_is_invalid(
+    validator: PairValidator, participants: list[Person]
+) -> None:
+    """A single forbidden edge invalidates the whole cycle."""
+    cycle = [
+        find(participants, "Alice"),
+        find(participants, "Bob"),
+        find(participants, "Charlie"),
+        find(participants, "Diana"),
+    ]
+    assert not validator.validate_cycle(cycle)
+
+
+def test_cycle_checks_the_wrap_around(validator: PairValidator, participants: list[Person]) -> None:
+    """The last edge wraps back to the start and is validated too."""
+    # Charlie → Alice → Diana → ... → Charlie: the closing Diana→Charlie is forbidden.
+    cycle = [
+        find(participants, "Charlie"),
+        find(participants, "Alice"),
+        find(participants, "Diana"),
+    ]
+    assert not validator.validate_cycle(cycle)
+
+
+def test_empty_cycle_raises_validation_error(validator: PairValidator) -> None:
+    """Validating an empty list is a usage error, not a valid cycle."""
+    with pytest.raises(ValidationError):
+        validator.validate_cycle([])
+
+
+def test_add_restriction(validator: PairValidator, participants: list[Person]) -> None:
+    """A restriction added at runtime starts being rejected."""
+    validator.add_restriction("Alice", "Charlie")
+
+    assert not validator.is_valid_pair(find(participants, "Alice"), find(participants, "Charlie"))
+
+
+def test_remove_restriction(validator: PairValidator, participants: list[Person]) -> None:
+    """Removing a restriction makes the pair valid again."""
+    validator.remove_restriction("Alice", "Bob")
+
+    assert validator.is_valid_pair(find(participants, "Alice"), find(participants, "Bob"))
+
+
+def test_get_restrictions_returns_sorted_tuples(validator: PairValidator) -> None:
+    """Restrictions are exposed as sorted tuples, independent of input order."""
+    assert sorted(validator.get_restrictions()) == [
+        ("Alice", "Bob"),
+        ("Charlie", "Diana"),
+    ]

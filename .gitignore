@@ -172,12 +172,9 @@ __marimo__/
 pyrightconfig.json
 
 # venv virtualenv
-[Bb]in
-[Ii]nclude
-[Ll]ib
-[Ll]ib64
-[Ll]ocal
-[Ss]cripts
+# OJO: no uses patrones sueltos tipo [Ss]cripts / [Ll]ib aquí: ignorarían
+# carpetas legítimas del proyecto (scripts/). El entorno virtual es .venv/,
+# ya cubierto en el bloque "Environments" de arriba.
 pyvenv.cfg
 pip-selfcheck.json
 
@@ -194,24 +191,17 @@ pip-selfcheck.json
 *.vsix
 
 # Configuración de Invisible Friend
-config/.env
+# Los secretos viven en el .env de la raíz (ya ignorado en "Environments").
+# El settings.yaml lleva nombres y emails reales de los participantes.
 config/settings.yaml
-!config/.env.example
-!config/settings.example.yaml
 
 # Datos personales generados en tiempo de ejecución
 # (ambos directorios se crean solos: file_handler.py y logger.py)
 output/
 logs/
 
-# Script legacy: contiene nombres y emails reales de los participantes.
-# Se conserva en local como referencia, pero no se versiona.
-invisiblefriend.py
+# Configuración local de Claude Code (rutas y permisos de esta máquina).
+# El resto de .claude/ (skills, referencias) SÍ se versiona.
+.claude/settings.local.json
 
-# Entorno virtual del proyecto
-invisiblefriend/
-
-# Herramientas y automatizaciones: de momento no se publican.
-# Quitar estas dos líneas cuando se quiera versionar el workflow de CI.
-.claude/
-.github/
+.plan

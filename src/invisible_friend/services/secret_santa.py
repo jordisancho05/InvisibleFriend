@@ -1,96 +1,90 @@
-"""Servicio principal para generar asignaciones de amigo invisible."""
+"""Core service that generates the Secret Santa assignments."""
 
 import random
-from typing import Dict, List
-from invisible_friend.models import Persona, Asignacion
-from invisible_friend.validators import ParejaValidator
+
 from invisible_friend.exceptions import AssignmentError
+from invisible_friend.models import Person
 from invisible_friend.utils.logger import get_logger
+from invisible_friend.validators import PairValidator
 
 logger = get_logger(__name__)
 
 
 class SecretSantaService:
-    """Genera asignaciones válidas de amigo invisible."""
-    
-    def __init__(self, validator: ParejaValidator, max_intentos: int = 100) -> None:
+    """Generates valid Secret Santa assignments."""
+
+    def __init__(self, validator: PairValidator, max_attempts: int = 100) -> None:
         """
-        Inicializa el servicio.
-        
+        Initialize the service.
+
         Args:
-            validator: Validador de parejas
-            max_intentos: Número máximo de intentos para generar asignaciones
+            validator: Pair validator
+            max_attempts: Maximum number of attempts to generate assignments
         """
         self.validator = validator
-        self.max_intentos = max_intentos
-    
-    def generar_asignaciones(self, personas: List[Persona]) -> Dict[Persona, Persona]:
+        self.max_attempts = max_attempts
+
+    def generate_assignments(self, participants: list[Person]) -> dict[Person, Person]:
         """
-        Genera un ciclo válido de asignaciones.
-        
-        Cada persona tiene exactamente un amigo invisible y es amigo invisible de exactamente uno.
-        Forma un ciclo: persona[i] -> persona[(i+1) % n].
-        
+        Generate a valid cycle of assignments.
+
+        Each person has exactly one secret friend and is the secret friend of exactly one.
+        It forms a cycle: person[i] -> person[(i+1) % n].
+
         Args:
-            personas: Lista de personas
-            
+            participants: List of participants
+
         Returns:
-            Diccionario {persona: amigo_invisible}
-            
+            Dict {person: secret_friend}
+
         Raises:
-            AssignmentError: Si no se puede generar un ciclo válido
+            AssignmentError: If no valid cycle can be generated
         """
-        if len(personas) < 2:
-            raise AssignmentError("Se necesitan al menos 2 personas")
-        
-        logger.info(f"Iniciando generación de asignaciones para {len(personas)} personas")
-        
-        for intento in range(self.max_intentos):
-            # Crear copia y barajar
-            personas_barajadas = personas.copy()
-            random.shuffle(personas_barajadas)
-            
-            # Validar que el ciclo sea válido
-            if self.validator.validar_ciclo(personas_barajadas):
-                # Crear diccionario de asignaciones
-                asignaciones = {
-                    personas_barajadas[i]: personas_barajadas[(i + 1) % len(personas_barajadas)]
-                    for i in range(len(personas_barajadas))
+        if len(participants) < 2:
+            raise AssignmentError("At least 2 participants are required")
+
+        logger.info(f"Generating assignments for {len(participants)} participants")
+
+        for attempt in range(self.max_attempts):
+            # Copy and shuffle.
+            shuffled = participants.copy()
+            random.shuffle(shuffled)
+
+            # Validate that the cycle is valid.
+            if self.validator.validate_cycle(shuffled):
+                # Build the assignments dict.
+                assignments = {
+                    shuffled[i]: shuffled[(i + 1) % len(shuffled)] for i in range(len(shuffled))
                 }
-                
-                logger.info(f"Asignaciones generadas exitosamente en intento {intento + 1}")
-                return asignaciones
-        
-        error_msg = f"No se pudo generar asignaciones válidas tras {self.max_intentos} intentos"
+
+                logger.info(f"Assignments generated successfully on attempt {attempt + 1}")
+                return assignments
+
+        error_msg = f"Could not generate valid assignments after {self.max_attempts} attempts"
         logger.error(error_msg)
         raise AssignmentError(error_msg)
-    
-    def obtener_asignaciones_formateadas(
-        self, asignaciones: Dict[Persona, Persona]
-    ) -> Dict[str, str]:
+
+    def get_formatted_assignments(self, assignments: dict[Person, Person]) -> dict[str, str]:
         """
-        Convierte asignaciones a formato nombre -> nombre.
-        
+        Convert assignments to a name -> name mapping.
+
         Args:
-            asignaciones: Diccionario de asignaciones
-            
+            assignments: Assignments dict
+
         Returns:
-            Diccionario con nombres
+            Dict of names
         """
-        return {
-            persona_de.nombre: persona_para.nombre
-            for persona_de, persona_para in asignaciones.items()
-        }
-    
-    def imprimir_asignaciones(self, asignaciones: Dict[Persona, Persona]) -> None:
+        return {giver.name: receiver.name for giver, receiver in assignments.items()}
+
+    def print_assignments(self, assignments: dict[Person, Person]) -> None:
         """
-        Imprime las asignaciones en formato legible.
-        
+        Print the assignments in a readable format.
+
         Args:
-            asignaciones: Diccionario de asignaciones
+            assignments: Assignments dict
         """
-        logger.info("=== ASIGNACIONES DE AMIGO INVISIBLE ===")
-        for persona_de, persona_para in asignaciones.items():
-            email = persona_de.email if persona_de.email else "[sin email]"
-            print(f"  {persona_de.nombre} (email: {email}) -> {persona_para.nombre}")
-            logger.debug(f"Asignacion: {persona_de.nombre} -> {persona_para.nombre}")
+        logger.info("=== SECRET SANTA ASSIGNMENTS ===")
+        for giver, receiver in assignments.items():
+            email = giver.email if giver.email else "[no email]"
+            print(f"  {giver.name} (email: {email}) -> {receiver.name}")
+            logger.debug(f"Assignment: {giver.name} -> {receiver.name}")

@@ -1,36 +1,42 @@
-# Configuración de la aplicación Invisible Friend
-# Copia este archivo a settings.yaml y rellena con TUS datos
+# Invisible Friend application configuration
+# Copy this file to settings.yaml and fill it in with YOUR data:
+#   cp config/settings.example.yaml config/settings.yaml
+# settings.yaml is NOT versioned: it holds real names and emails.
 
-# Configuración de la aplicación
+# Application settings
+# Only max_attempts is read; name/version/description are decorative and the
+# code ignores them (the real version lives in pyproject.toml).
 app:
   name: Invisible Friend
   version: 1.0.0
-  description: "Generador de asignaciones de Amigo Invisible"
-  max_attempts: 100
+  description: "Secret Santa assignment generator"
+  max_attempts: 100     # maximum attempts to find a valid cycle
 
-# Configuración SMTP para envío de emails
+# SMTP settings for sending emails
 email:
   smtp_server: "smtp.gmail.com"
   smtp_port: 465
 
-# Lista de personas participantes
-# ⚠️ IMPORTANTE: Email es OBLIGATORIO para cada persona
-personas:
-  - nombre: "Persona 1"
-    email: "persona1@example.com"
-  
-  - nombre: "Persona 2"
-    email: "persona2@example.com"
-  
-  - nombre: "Persona 3"
-    email: "persona3@example.com"
-  
-  - nombre: "Persona 4"
-    email: "persona4@example.com"
+# List of participants
+# ⚠️ IMPORTANT: the email is REQUIRED for every participant
+participants:
+  - name: "Person 1"
+    email: "person1@example.com"
 
-# Parejas que NO pueden ser asignadas juntas
-# Formato: [Persona1, Persona2]
-# Ejemplo: Si no quieres que Persona1 sea amigo invisible de Persona2
-restricciones:
-  - ["Persona1", "Persona2"]
-  - ["Persona3", "Persona4"]
+  - name: "Person 2"
+    email: "person2@example.com"
+
+  - name: "Person 3"
+    email: "person3@example.com"
+
+  - name: "Person 4"
+    email: "person4@example.com"
+
+# Pairs that must NOT be assigned together.
+# Format: [Person1, Person2]. The restriction is bidirectional: it prevents
+# both the first giving to the second and the other way around.
+# ⚠️ The names must match EXACTLY those in the list above, spaces included;
+# otherwise the restriction is silently ignored.
+restrictions:
+  - ["Person 1", "Person 2"]
+  - ["Person 3", "Person 4"]

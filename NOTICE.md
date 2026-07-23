@@ -31,7 +31,7 @@ copies or substantial portions of the Software.
 - **Descripción**: Carga variables de entorno desde archivos .env
 - **Licencia completa**: https://github.com/theskumar/python-dotenv/blob/main/LICENSE
 
-## pytest, black, mypy, flake8, pylint
+## pytest, pytest-cov, pytest-mock, ruff, mypy
 - **Licencias**: MIT y compatibles
 - Son herramientas de desarrollo y testing (no incluidas en distribución)
 
