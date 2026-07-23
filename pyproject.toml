@@ -7,7 +7,7 @@ name = "invisible-friend"
 version = "1.0.0"
 description = "Aplicación para generar y enviar asignaciones de Amigo Invisible"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     {name = "Jordi Sancho"}
@@ -24,26 +24,39 @@ dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.1",
-    "black>=23.7.0",
-    "flake8>=6.0.0",
+    "ruff>=0.6.0",
     "mypy>=1.4.1",
-    "pylint>=2.17.5",
-    "ipython>=8.14.0",
+    "types-PyYAML>=6.0",
 ]
+
+[project.scripts]
+invisible-friend = "invisible_friend.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.black]
+[tool.ruff]
 line-length = 100
-target-version = ['py39', 'py310', 'py311']
+target-version = "py311"
+src = ["src", "tests"]
 
-[tool.isort]
-profile = "black"
-line_length = 100
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+]
+
+[tool.ruff.lint.per-file-ignores]
+# El template HTML es un documento embebido: sus líneas largas son inherentes al marcado.
+"src/invisible_friend/templates/email_template.py" = ["E501"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -53,12 +66,3 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-v"
 # La cobertura se pide a mano: pytest --cov=invisible_friend --cov-report=term-missing
-
-[tool.pylint.messages_control]
-disable = [
-    "C0111",  # missing-docstring
-    "R0913",  # too-many-arguments
-]
-
-[tool.pylint.format]
-max-line-length = 100

@@ -3,25 +3,25 @@
 
 class EmailTemplate:
     """Templates para emails de amigo invisible."""
-    
+
     ASUNTO = "🎁 ¡Tu Amigo Invisible! 🎁"
-    
+
     @staticmethod
     def generar_email(nombre_persona: str, amigo_invisible: str) -> str:
         """
         Genera el cuerpo del email con formato.
-        
+
         Args:
             nombre_persona: Nombre de quien recibe el email
             amigo_invisible: Nombre del amigo invisible
-            
+
         Returns:
             Cuerpo del email formateado
         """
         return f"""Hola {nombre_persona},
 
-        ¡Felicidades! 🎉 
-        
+        ¡Felicidades! 🎉
+
         Tu amigo invisible es: {amigo_invisible}
 
         Recuerda:
@@ -31,7 +31,7 @@ class EmailTemplate:
 
         ¡Gracias por participar!
         """
-    
+
     @staticmethod
     def generar_email_html(nombre_persona: str, amigo_invisible: str) -> str:
         """Genera email en formato HTML."""

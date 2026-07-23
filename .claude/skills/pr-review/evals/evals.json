@@ -1,0 +1,98 @@
+{
+  "description": "Labeled diff scenarios for the pr-review skill. Each case lists the findings a correct review must produce. A regression = an expected finding stops being produced, or a clean case starts producing findings. Every name used here is fictional.",
+  "cases": [
+    {
+      "name": "real-participant-data-in-test",
+      "scope": "assignment",
+      "diff": "tests/test_secret_santa.py: the fixture is replaced by the real participants copied from config/settings.yaml, with their actual gmail addresses",
+      "expected_findings": [
+        { "bucket": "blocker", "rule": "Privacy & secrets", "reason": "participants' real names and emails committed in a versioned test" }
+      ]
+    },
+    {
+      "name": "credentials-inlined-in-source",
+      "scope": "email",
+      "diff": "src/invisible_friend/config.py: `return os.getenv('PASSWORD')` replaced with a literal app password as the fallback default",
+      "expected_findings": [
+        { "bucket": "blocker", "rule": "Privacy & secrets", "reason": "credential hardcoded in a versioned file instead of living in .env" }
+      ]
+    },
+    {
+      "name": "send-becomes-the-default",
+      "scope": "email",
+      "diff": "src/invisible_friend/__main__.py: `ejecutar_completo(enviar=...)` default changed from False to True, and `--enviar` becomes `--simular`",
+      "expected_findings": [
+        { "bucket": "blocker", "rule": "Email", "reason": "real sending must stay opt-in; the default run cannot open an SMTP connection" }
+      ]
+    },
+    {
+      "name": "assignment-loses-the-single-cycle",
+      "scope": "assignment",
+      "diff": "src/invisible_friend/services/secret_santa.py: the cycle is replaced by pairing people two by two (`personas[i] <-> personas[i+1]`)",
+      "expected_findings": [
+        { "bucket": "blocker", "rule": "Domain invariants", "reason": "mutual pairs are sub-cycles: it is no longer a single cycle over all participants" },
+        { "bucket": "blocker", "rule": "Tests", "reason": "changed behavior with no covering test" }
+      ]
+    },
+    {
+      "name": "restriction-checked-in-one-direction",
+      "scope": "assignment",
+      "diff": "src/invisible_friend/validators.py: the frozenset lookup is replaced by a list of ordered tuples `(a, b)`",
+      "expected_findings": [
+        { "bucket": "blocker", "rule": "Domain invariants", "reason": "restrictions stop being symmetric: A-B would be rejected but B-A allowed" }
+      ]
+    },
+    {
+      "name": "test-opens-a-real-connection",
+      "scope": "email",
+      "diff": "tests/test_email_service.py: new test calling enviar_email() without patching smtplib.SMTP_SSL",
+      "expected_findings": [
+        { "bucket": "blocker", "rule": "Tests", "reason": "a test that opens an SMTP socket hits the network and leaks credentials usage" }
+      ]
+    },
+    {
+      "name": "assignment-test-asserts-a-fixed-mapping",
+      "scope": "assignment",
+      "diff": "tests/test_secret_santa.py: asserts `asignaciones == {Alice: Bob, Bob: Charlie, Charlie: Alice}` without seeding random",
+      "expected_findings": [
+        { "bucket": "warning", "rule": "Tests", "reason": "the shuffle is random: asserting one mapping is flaky by construction" }
+      ]
+    },
+    {
+      "name": "config-read-outside-config",
+      "scope": "config",
+      "diff": "src/invisible_friend/services/email_service.py: added `smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')` instead of receiving it from Config",
+      "expected_findings": [
+        { "bucket": "warning", "rule": "Config", "reason": "configuration read outside the Config object" }
+      ]
+    },
+    {
+      "name": "yaml-key-missing-from-the-example",
+      "scope": "config",
+      "diff": "config.py reads a new `app.dry_run` key; config/settings.example.yaml untouched and README not updated",
+      "expected_findings": [
+        { "bucket": "warning", "rule": "Config", "reason": "a key that exists only in the private settings.yaml breaks the next clone of the repo" }
+      ]
+    },
+    {
+      "name": "unchained-bare-exception",
+      "scope": "general",
+      "diff": "src/invisible_friend/utils/file_handler.py: new `except Exception: raise Exception('error')` swallowing the original error",
+      "expected_findings": [
+        { "bucket": "warning", "rule": "Layering & style", "reason": "bare Exception instead of InvisibleFriendError, and the cause is lost without `from e`" }
+      ]
+    },
+    {
+      "name": "clean-add-yaml-key",
+      "scope": "config",
+      "diff": "config.py reads a new `app.presupuesto` with a default and exposes it as a property; added to config/settings.example.yaml with a fake value, documented in the README, and tests/test_config.py covers the default and the parsed value",
+      "expected_findings": []
+    },
+    {
+      "name": "clean-new-restriction-rule",
+      "scope": "assignment",
+      "diff": "validators.py adds a rule rejecting pairs from the same household; symmetric frozenset lookup preserved; tests cover both directions plus the unsatisfiable AssignmentError path with fake names",
+      "expected_findings": []
+    }
+  ]
+}

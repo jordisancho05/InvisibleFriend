@@ -1,12 +1,16 @@
 # Configuración de la aplicación Invisible Friend
-# Copia este archivo a settings.yaml y rellena con TUS datos
+# Copia este archivo a settings.yaml y rellena con TUS datos:
+#   cp config/settings.example.yaml config/settings.yaml
+# settings.yaml NO se versiona: contiene nombres y emails reales.
 
 # Configuración de la aplicación
+# Solo se lee max_attempts; name/version/description son decorativos y el código
+# los ignora (la versión real vive en pyproject.toml).
 app:
   name: Invisible Friend
   version: 1.0.0
   description: "Generador de asignaciones de Amigo Invisible"
-  max_attempts: 100
+  max_attempts: 100     # intentos máximos para encontrar un ciclo válido
 
 # Configuración SMTP para envío de emails
 email:
@@ -14,23 +18,25 @@ email:
   smtp_port: 465
 
 # Lista de personas participantes
-# ⚠️ IMPORTANTE: Email es OBLIGATORIO para cada persona
+# ⚠️ IMPORTANTE: el email es OBLIGATORIO para cada persona
 personas:
   - nombre: "Persona 1"
     email: "persona1@example.com"
-  
+
   - nombre: "Persona 2"
     email: "persona2@example.com"
-  
+
   - nombre: "Persona 3"
     email: "persona3@example.com"
-  
+
   - nombre: "Persona 4"
     email: "persona4@example.com"
 
-# Parejas que NO pueden ser asignadas juntas
-# Formato: [Persona1, Persona2]
-# Ejemplo: Si no quieres que Persona1 sea amigo invisible de Persona2
+# Parejas que NO pueden ser asignadas juntas.
+# Formato: [Persona1, Persona2]. La restricción es bidireccional: impide tanto
+# que la primera le regale a la segunda como al revés.
+# ⚠️ Los nombres deben coincidir EXACTAMENTE con los de la lista de arriba,
+# espacios incluidos; si no, la restricción se ignora en silencio.
 restricciones:
-  - ["Persona1", "Persona2"]
-  - ["Persona3", "Persona4"]
+  - ["Persona 1", "Persona 2"]
+  - ["Persona 3", "Persona 4"]

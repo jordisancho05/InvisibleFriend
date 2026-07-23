@@ -1,105 +1,126 @@
-"""Tests para el servicio de emails."""
+"""Tests para EmailService.
 
-import unittest
+Ningún test abre un socket: `smtplib.SMTP_SSL` va siempre parcheado y los
+envíos masivos usan `simular=True`.
+"""
+
+import smtplib
 from unittest.mock import MagicMock, patch
-from invisible_friend.services.email_service import EmailService
+
+import pytest
+
 from invisible_friend.exceptions import EmailError
+from invisible_friend.services.email_service import EmailService
 
 
-class TestEmailService(unittest.TestCase):
-    """Tests para EmailService."""
-    
-    def setUp(self) -> None:
-        """Configuración previa a cada test."""
-        self.service = EmailService(
-            smtp_server="smtp.gmail.com",
-            smtp_port=465,
-            email_sender="sender@example.com",
-            password="password123"
-        )
-    
-    def test_crear_email(self) -> None:
-        """Test para creación de email."""
-        email = self.service.crear_email(
-            "recipient@example.com",
-            "Test Subject",
-            "Test body"
-        )
-        
-        self.assertEqual(email["From"], "sender@example.com")
-        self.assertEqual(email["To"], "recipient@example.com")
-        self.assertEqual(email["Subject"], "Test Subject")
-    
-    def test_crear_email_estructura(self) -> None:
-        """Test que verifica estructura del email."""
-        email = self.service.crear_email(
-            "recipient@example.com",
-            "Subject",
-            "Body content"
-        )
-        
-        # Verificar que es EmailMessage
-        self.assertIsNotNone(email.get_content())
-    
-    def test_enviar_asignacion_formato(self) -> None:
-        """Test formato de envío de asignación."""
-        with patch.object(self.service, 'enviar_email', return_value=True):
-            resultado = self.service.enviar_asignacion(
-                "recipient@example.com",
-                "Juan",
-                "María",
-                usar_template=True
-            )
-            self.assertTrue(resultado)
-    
-    @patch('smtplib.SMTP_SSL')
-    def test_enviar_email_exitoso(self, mock_smtp) -> None:
-        """Test envío exitoso de email."""
-        mock_instance = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = mock_instance
-        
-        email = self.service.crear_email("test@example.com", "Subject", "Body")
-        resultado = self.service.enviar_email("test@example.com", email)
-        
-        self.assertTrue(resultado)
-        mock_instance.login.assert_called_once()
-    
-    def test_enviar_asignaciones_masivas_simulacion(self) -> None:
-        """Test envío masivo en modo simulación."""
-        asignaciones = {
-            "Alice": "Bob",
-            "Bob": "Charlie",
-            "Charlie": "Alice"
-        }
-        
-        personas_dict = {
-            "Alice": "alice@example.com",
-            "Bob": "bob@example.com",
-            "Charlie": "charlie@example.com"
-        }
-        
-        exitosos, fallidos = self.service.enviar_asignaciones_masivas(
-            asignaciones,
-            personas_dict,
-            simular=True
-        )
-        
-        self.assertEqual(exitosos, 3)
-        self.assertEqual(fallidos, 0)
-    
-    def test_enviar_asignaciones_sin_email(self) -> None:
-        """Test envío cuando falta email."""
-        asignaciones = {"Alice": "Bob"}
-        personas_dict = {"Alice": ""}  # Sin email
-        
-        exitosos, fallidos = self.service.enviar_asignaciones_masivas(
-            asignaciones,
-            personas_dict,
-            simular=True
-        )
-        
-        self.assertEqual(fallidos, 1)
+def test_crear_email_rellena_las_cabeceras(email_service: EmailService) -> None:
+    """From, To y Subject salen del remitente configurado y de los argumentos."""
+    email = email_service.crear_email("recipient@example.com", "Asunto", "Cuerpo")
+
+    assert email["From"] == "sender@example.com"
+    assert email["To"] == "recipient@example.com"
+    assert email["Subject"] == "Asunto"
+    assert "Cuerpo" in email.get_content()
 
 
-if __name__ == "__main__":
-    unittest.main()
+@patch("smtplib.SMTP_SSL")
+def test_enviar_email_hace_login_y_sendmail(
+    mock_smtp: MagicMock, email_service: EmailService
+) -> None:
+    """El envío entra al context manager, autentica y manda al destinatario."""
+    conexion = MagicMock()
+    mock_smtp.return_value.__enter__.return_value = conexion
+    email = email_service.crear_email("test@example.com", "Asunto", "Cuerpo")
+
+    resultado = email_service.enviar_email("test@example.com", email)
+
+    assert resultado is True
+    assert mock_smtp.call_args.args == ("smtp.example.com", 465)
+    assert "context" in mock_smtp.call_args.kwargs, "la conexión debe ir sobre SSL"
+    conexion.login.assert_called_once_with("sender@example.com", "app-password")
+    assert conexion.sendmail.call_args.args[1] == "test@example.com"
+
+
+@patch("smtplib.SMTP_SSL")
+def test_error_smtp_se_traduce_a_email_error(
+    mock_smtp: MagicMock, email_service: EmailService
+) -> None:
+    """Un fallo de SMTP no se escapa como excepción de librería."""
+    mock_smtp.return_value.__enter__.side_effect = smtplib.SMTPAuthenticationError(535, b"nope")
+    email = email_service.crear_email("test@example.com", "Asunto", "Cuerpo")
+
+    with pytest.raises(EmailError, match="test@example.com"):
+        email_service.enviar_email("test@example.com", email)
+
+
+def test_enviar_asignacion_usa_el_template(email_service: EmailService) -> None:
+    """Con usar_template=True el cuerpo lo genera EmailTemplate."""
+    with patch.object(email_service, "enviar_email", return_value=True) as mock_enviar:
+        resultado = email_service.enviar_asignacion(
+            "recipient@example.com", "Alice", "Bob", usar_template=True
+        )
+
+    assert resultado is True
+    email_enviado = mock_enviar.call_args.args[1]
+    cuerpo = email_enviado.get_content()
+    assert "Alice" in cuerpo
+    assert "Bob" in cuerpo
+
+
+def test_enviar_asignacion_sin_template_usa_texto_plano(email_service: EmailService) -> None:
+    """Con usar_template=False el cuerpo es el mensaje corto, en español."""
+    with patch.object(email_service, "enviar_email", return_value=True) as mock_enviar:
+        email_service.enviar_asignacion(
+            "recipient@example.com", "Alice", "Bob", usar_template=False
+        )
+
+    email_enviado = mock_enviar.call_args.args[1]
+    assert email_enviado["Subject"] == "Amigo Invisible"
+    assert "Hola Alice," in email_enviado.get_content()
+    assert "tu amigo invisible es bob" in email_enviado.get_content().lower()
+
+
+def test_envio_masivo_simulado_no_toca_la_red(email_service: EmailService) -> None:
+    """simular=True cuenta todos como exitosos sin abrir conexión."""
+    asignaciones = {"Alice": "Bob", "Bob": "Charlie", "Charlie": "Alice"}
+    emails = {
+        "Alice": "alice@example.com",
+        "Bob": "bob@example.com",
+        "Charlie": "charlie@example.com",
+    }
+
+    with patch("smtplib.SMTP_SSL") as mock_smtp:
+        exitosos, fallidos = email_service.enviar_asignaciones_masivas(
+            asignaciones, emails, simular=True
+        )
+
+    assert (exitosos, fallidos) == (3, 0)
+    mock_smtp.assert_not_called()
+
+
+def test_participante_sin_email_cuenta_como_fallido(email_service: EmailService) -> None:
+    """Falta el email de alguien: se registra como fallo y no rompe el lote."""
+    exitosos, fallidos = email_service.enviar_asignaciones_masivas(
+        {"Alice": "Bob", "Bob": "Alice"},
+        {"Alice": "", "Bob": "bob@example.com"},
+        simular=True,
+    )
+
+    assert (exitosos, fallidos) == (1, 1)
+
+
+@patch("smtplib.SMTP_SSL")
+def test_un_fallo_no_aborta_el_lote(mock_smtp: MagicMock, email_service: EmailService) -> None:
+    """Si un envío revienta, el resto continúa y se contabiliza."""
+    mock_smtp.return_value.__enter__.return_value.sendmail.side_effect = [
+        None,
+        smtplib.SMTPRecipientsRefused({}),
+    ]
+
+    exitosos, fallidos = email_service.enviar_asignaciones_masivas(
+        {"Alice": "Bob", "Bob": "Alice"},
+        {"Alice": "alice@example.com", "Bob": "bob@example.com"},
+        simular=False,
+    )
+
+    assert (exitosos, fallidos) == (1, 1)
