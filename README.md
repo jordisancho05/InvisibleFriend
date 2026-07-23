@@ -243,10 +243,10 @@ Specific exceptions for each case:
 
 ```python
 from invisible_friend.exceptions import (
-    ConfigError,           # Configuration errors
-    ValidationError,       # Validation errors
-    AssignmentError,       # Assignment errors
-    EmailError,            # Email sending errors
+    ConfigError,  # Configuration errors
+    ValidationError,  # Validation errors
+    AssignmentError,  # Assignment errors
+    EmailError,  # Email sending errors
 )
 ```
 
