@@ -1,181 +1,181 @@
-# 🎁 Invisible Friend - Sistema de Amigo Invisible Escalable
+# 🎁 Invisible Friend - Scalable Secret Santa System
 
-Una aplicación profesional y escalable para generar y enviar asignaciones de **Amigo Invisible** (Secret Santa) con validación de restricciones, manejo robusto de errores, logging centralizado y pruebas unitarias.
+A professional, scalable application to generate and send **Secret Santa** (Amigo Invisible) assignments, with restriction validation, robust error handling, centralized logging and unit tests.
 
-## 🌟 Características
+## 🌟 Features
 
-✅ **Generación inteligente de asignaciones** - Algoritmo cíclico que forma un ciclo perfecto
-✅ **Validación de restricciones** - Evita parejas prohibidas configurables
-✅ **Envío de emails** - Integración con Gmail SMTP
-✅ **Envío explícito** - Por defecto simula; solo `--send` abre conexión real
-✅ **Configuración centralizada** - YAML + variables de entorno
-✅ **Type hints completos** - Verificado con mypy
-✅ **Logging extenso** - Rastreo de eventos y errores
-✅ **Pruebas unitarias** - 73 tests, 97% de cobertura
-✅ **Manejo robusto de errores** - Excepciones específicas
-✅ **Arquitectura escalable** - Separación de responsabilidades
+✅ **Smart assignment generation** - Cyclic algorithm that forms a perfect cycle
+✅ **Restriction validation** - Avoids configurable forbidden pairs
+✅ **Email delivery** - Gmail SMTP integration
+✅ **Explicit sending** - Simulates by default; only `--send` opens a real connection
+✅ **Centralized configuration** - YAML + environment variables
+✅ **Full type hints** - Checked with mypy
+✅ **Extensive logging** - Event and error tracing
+✅ **Unit tests** - 73 tests, 97% coverage
+✅ **Robust error handling** - Specific exceptions
+✅ **Scalable architecture** - Separation of concerns
 
 ---
 
-## 📁 Estructura del Proyecto
+## 📁 Project Structure
 
 ```
 Pinvisiblefriend/
-├── src/invisible_friend/        # Paquete principal (src-layout)
-│   ├── __init__.py              # __version__ (leído de los metadatos)
+├── src/invisible_friend/        # Main package (src-layout)
+│   ├── __init__.py              # __version__ (read from metadata)
 │   ├── __main__.py              # CLI: InvisibleFriendApp + argparse
-│   ├── config.py                # Gestión de configuración (YAML + .env)
+│   ├── config.py                # Configuration management (YAML + .env)
 │   ├── models.py                # Dataclasses (Person, Assignment, ConfigData)
-│   ├── exceptions.py            # Excepciones personalizadas
-│   ├── validators.py            # Validación de parejas
+│   ├── exceptions.py            # Custom exceptions
+│   ├── validators.py            # Pair validation
 │   ├── services/
-│   │   ├── secret_santa.py      # Lógica de generación de asignaciones
-│   │   └── email_service.py     # Servicio de envío de emails
+│   │   ├── secret_santa.py      # Assignment generation logic
+│   │   └── email_service.py     # Email sending service
 │   ├── utils/
-│   │   ├── logger.py            # Logging centralizado
-│   │   └── file_handler.py      # I/O de archivos JSON
+│   │   ├── logger.py            # Centralized logging
+│   │   └── file_handler.py      # JSON file I/O
 │   └── templates/
-│       └── email_template.py    # Templates de emails
+│       └── email_template.py    # Email templates
 ├── config/
-│   ├── settings.example.yaml    # Template de participantes y restricciones
-│   └── settings.yaml            # PRIVADO: tus participantes reales
-├── tests/                       # Suite de pytest (conftest + 8 módulos)
+│   ├── settings.example.yaml    # Template of participants and restrictions
+│   └── settings.yaml            # PRIVATE: your real participants
+├── tests/                       # pytest suite (conftest + 8 modules)
 ├── scripts/
-│   └── demo.py                  # Script de demostración
-├── .env                         # PRIVADO: credenciales de Gmail
-├── .env.example                 # Template de variables de entorno
-├── main.py                      # Lanzador desde la raíz
-├── pyproject.toml               # Configuración del proyecto y dependencias
-├── CHANGELOG.md                 # Historial de cambios (Keep a Changelog)
-├── LICENSE                      # Licencia MIT
-├── NOTICE.md                    # Atribuciones de terceros
+│   └── demo.py                  # Demo script
+├── .env                         # PRIVATE: Gmail credentials
+├── .env.example                 # Environment variables template
+├── main.py                      # Root-level launcher
+├── pyproject.toml               # Project configuration and dependencies
+├── CHANGELOG.md                 # Change history (Keep a Changelog)
+├── LICENSE                      # MIT license
+├── NOTICE.md                    # Third-party attributions
 └── README.md
 ```
 
-> Los directorios `output/` y `logs/` se crean solos en la primera ejecución y
-> no se versionan: contienen datos personales de los participantes.
+> The `output/` and `logs/` directories are created automatically on the first
+> run and are not versioned: they contain participants' personal data.
 
 ---
 
-## 🚀 Instalación Rápida
+## 🚀 Quick Install
 
-Requiere **Python 3.11 o superior**.
+Requires **Python 3.11 or higher**.
 
 ```bash
-# 1. Crear y activar un entorno virtual
+# 1. Create and activate a virtual environment
 python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\Activate.ps1
 
-# 2. Instalar el proyecto (editable) y las herramientas de desarrollo
+# 2. Install the project (editable) and the dev tools
 pip install -e ".[dev]"
 
-# 3. Configurar credenciales (PRIVADO)
+# 3. Configure credentials (PRIVATE)
 cp .env.example .env
-# Editar .env con tus credenciales de Gmail
+# Edit .env with your Gmail credentials
 
-# 4. Configurar personas y restricciones (PRIVADO)
+# 4. Configure people and restrictions (PRIVATE)
 cp config/settings.example.yaml config/settings.yaml
-# Editar config/settings.yaml con TUS personas y restricciones
+# Edit config/settings.yaml with YOUR people and restrictions
 
-# 5. Verificar que todo carga
+# 5. Verify everything loads
 python scripts/demo.py
 ```
 
-> El proyecto usa **src-layout**, así que hay que instalarlo (`pip install -e .`)
-> para que `import invisible_friend` funcione. Los tests no lo necesitan:
-> `pythonpath` está configurado en `pyproject.toml`.
+> The project uses **src-layout**, so it must be installed (`pip install -e .`)
+> for `import invisible_friend` to work. The tests don't need it:
+> `pythonpath` is configured in `pyproject.toml`.
 
-### 🔑 Variables de entorno (`.env`)
+### 🔑 Environment variables (`.env`)
 
-| Variable | Descripción |
+| Variable | Description |
 |----------|-------------|
-| `MAILSENDER` | Cuenta de Gmail desde la que se envían los emails |
-| `PASSWORD` | **Contraseña de aplicación** de esa cuenta, no la contraseña normal |
+| `MAILSENDER` | Gmail account the emails are sent from |
+| `PASSWORD` | **App password** for that account, not the regular password |
 
-Se generan en [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
-(requiere verificación en dos pasos activada).
+They are generated at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+(requires two-step verification enabled).
 
-### ⚙️ Configuración (`config/settings.yaml`)
+### ⚙️ Configuration (`config/settings.yaml`)
 
-| Clave | Descripción | Por defecto |
-|-------|-------------|-------------|
-| `app.max_attempts` | Intentos máximos para encontrar un ciclo válido | `100` |
-| `email.smtp_server` | Servidor SMTP | `smtp.gmail.com` |
-| `email.smtp_port` | Puerto SMTP (SSL) | `465` |
-| `participants` | Lista de `{name, email}` participantes | — |
-| `restrictions` | Pares `[A, B]` que no pueden tocarse | `[]` |
+| Key | Description | Default |
+|-----|-------------|---------|
+| `app.max_attempts` | Maximum attempts to find a valid cycle | `100` |
+| `email.smtp_server` | SMTP server | `smtp.gmail.com` |
+| `email.smtp_port` | SMTP port (SSL) | `465` |
+| `participants` | List of `{name, email}` participants | — |
+| `restrictions` | Pairs `[A, B]` that must not touch | `[]` |
 
-Las restricciones son **bidireccionales**: `["Alice", "Bob"]` impide tanto que Alice
-le regale a Bob como al revés.
+Restrictions are **bidirectional**: `["Alice", "Bob"]` prevents both Alice
+giving to Bob and the other way around.
 
-### 🔐 Estructura de Privacidad
+### 🔐 Privacy Structure
 
 ```
-Repositorio Git
-├── .env.example                ✅ Incluir en Git (template)
-├── .env                        ❌ NO incluir (privado, en .gitignore)
+Git Repository
+├── .env.example                ✅ Include in Git (template)
+├── .env                        ❌ DO NOT include (private, in .gitignore)
 ├── config/
-│   ├── settings.example.yaml   ✅ Incluir en Git (template)
-│   └── settings.yaml           ❌ NO incluir (privado, en .gitignore)
-├── output/                     ❌ NO incluir (asignaciones reales)
-├── logs/                       ❌ NO incluir (emails en los logs)
+│   ├── settings.example.yaml   ✅ Include in Git (template)
+│   └── settings.yaml           ❌ DO NOT include (private, in .gitignore)
+├── output/                     ❌ DO NOT include (real assignments)
+├── logs/                       ❌ DO NOT include (emails in the logs)
 ├── .gitignore
 └── ...
 ```
 
-**Archivos privados (NO se versionan):**
-- `.env` - Contiene tus credenciales de Gmail
-- `config/settings.yaml` - Contiene nombres y emails reales
-- `output/` - Las asignaciones generadas (destripan el sorteo)
-- `logs/` - Los logs registran los emails de los participantes
+**Private files (NOT versioned):**
+- `.env` - Contains your Gmail credentials
+- `config/settings.yaml` - Contains real names and emails
+- `output/` - The generated assignments (they spoil the draw)
+- `logs/` - The logs record the participants' emails
 
-**Templates públicos (SÍ se versionan):**
-- `.env.example` - Estructura sin valores reales
-- `config/settings.example.yaml` - Estructura sin datos sensibles
+**Public templates (versioned):**
+- `.env.example` - Structure without real values
+- `config/settings.example.yaml` - Structure without sensitive data
 
-### ⚠️ Validación de Datos
+### ⚠️ Data Validation
 
-- **Nombre**: Obligatorio, cadena no vacía
-- **Email**: Obligatorio, debe ser un email válido (ej: persona@example.com)
-- **Restricciones**: Pares de nombres que NO pueden ser amigos invisibles (mutuos)
+- **Name**: Required, non-empty string
+- **Email**: Required, must be a valid email (e.g. person@example.com)
+- **Restrictions**: Pairs of names that CANNOT be Secret Santas (mutual)
 
 ---
 
-## 💻 Uso
+## 💻 Usage
 
-### Ejecución básica (modo seguro: simula los emails)
+### Basic run (safe mode: simulates the emails)
 ```bash
 python main.py
 ```
 
-Genera las asignaciones, las muestra por consola, las guarda en
-`output/assignments.json` y **simula** el envío sin abrir ninguna conexión.
+Generates the assignments, prints them to the console, saves them to
+`output/assignments.json` and **simulates** sending without opening any connection.
 
-### Con envío real de emails
+### With real email sending
 ```bash
 python main.py --send
 ```
 
-### Opciones disponibles
+### Available options
 ```bash
 python main.py --help
 ```
 
-| Flag | Descripción | Por defecto |
-|------|-------------|-------------|
-| `--send` | Envía los emails de verdad | desactivado (simula) |
-| `--config PATH` | Ruta al YAML de participantes | `config/settings.yaml` |
-| `--output PATH` | Dónde guardar el JSON de asignaciones | `output/assignments.json` |
-| `--version` | Muestra la versión | — |
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--send` | Actually sends the emails | disabled (simulates) |
+| `--config PATH` | Path to the participants YAML | `config/settings.yaml` |
+| `--output PATH` | Where to save the assignments JSON | `output/assignments.json` |
+| `--version` | Show the version | — |
 
-### Formas equivalentes de ejecutarlo
+### Equivalent ways to run it
 ```bash
-python main.py --send             # lanzador desde la raíz
-python -m invisible_friend --send # como módulo
-invisible-friend --send           # console script (tras pip install)
+python main.py --send             # root-level launcher
+python -m invisible_friend --send # as a module
+invisible-friend --send           # console script (after pip install)
 ```
 
-### Uso programático
+### Programmatic usage
 ```python
 from pathlib import Path
 from invisible_friend.__main__ import InvisibleFriendApp
@@ -189,95 +189,95 @@ app.send_emails(assignments, simulate=True)
 
 ---
 
-## 🧪 Pruebas Unitarias
+## 🧪 Unit Tests
 
 ```bash
-# Ejecutar todos los tests
+# Run all tests
 pytest
 
-# Con reporte de cobertura
+# With coverage report
 pytest --cov=invisible_friend --cov-report=term-missing
 
-# Tests específicos
+# Specific tests
 pytest tests/test_validators.py -v
 ```
 
-Ningún test abre un socket ni lee tu `.env` o tu `config/settings.yaml`: el SMTP
-va parcheado y los datos son ficticios.
+No test opens a socket or reads your `.env` or your `config/settings.yaml`: SMTP
+is patched and the data is fake.
 
-### Linting y tipos
+### Linting and types
 ```bash
 ruff check .        # lint
-ruff format .       # formateo
-mypy src            # verificación de tipos
+ruff format .       # formatting
+mypy src            # type checking
 ```
 
 ---
 
-## 🏗️ Arquitectura de Componentes
+## 🏗️ Component Architecture
 
-| Módulo | Responsabilidad |
-|--------|-----------------|
-| **Config** | Cargar YAML, variables de entorno, validar configuración |
-| **PairValidator** | Validar pares permitidos/prohibidos de forma bidireccional |
-| **SecretSantaService** | Generar ciclos válidos de asignaciones |
-| **EmailService** | Crear y enviar emails vía SMTP |
-| **EmailTemplate** | Cuerpo del email en texto plano y HTML |
-| **FileHandler** | Guardar/cargar datos en JSON |
-| **LoggerConfig** | Sistema de logging centralizado (consola + archivo) |
-| **InvisibleFriendApp** | Orquesta el flujo completo desde el CLI |
+| Module | Responsibility |
+|--------|----------------|
+| **Config** | Load YAML, environment variables, validate configuration |
+| **PairValidator** | Validate allowed/forbidden pairs bidirectionally |
+| **SecretSantaService** | Generate valid assignment cycles |
+| **EmailService** | Create and send emails via SMTP |
+| **EmailTemplate** | Email body in plain text and HTML |
+| **FileHandler** | Save/load data as JSON |
+| **LoggerConfig** | Centralized logging system (console + file) |
+| **InvisibleFriendApp** | Orchestrates the full flow from the CLI |
 
 ---
 
 ## 📊 Logging
 
-Logs disponibles en:
-- **Consola**: Nivel INFO y superior
-- **Archivo**: `logs/invisible_friend.log`
+Logs available at:
+- **Console**: INFO level and above
+- **File**: `logs/invisible_friend.log`
 
 ---
 
-## 🛡️ Manejo de Errores
+## 🛡️ Error Handling
 
-Excepciones específicas para cada caso:
+Specific exceptions for each case:
 
 ```python
 from invisible_friend.exceptions import (
-    ConfigError,           # Errores de configuración
-    ValidationError,       # Errores de validación
-    AssignmentError,       # Errores en asignaciones
-    EmailError,            # Errores en envío de emails
+    ConfigError,           # Configuration errors
+    ValidationError,       # Validation errors
+    AssignmentError,       # Assignment errors
+    EmailError,            # Email sending errors
 )
 ```
 
-Todas heredan de `InvisibleFriendError`, así que puedes capturarlas de golpe.
+They all inherit from `InvisibleFriendError`, so you can catch them all at once.
 
 ---
 
-## ✨ Características Avanzadas
+## ✨ Advanced Features
 
-- ✅ Ciclo garantizado (cada persona regala una vez y recibe una vez)
-- ✅ Validación bidireccional de restricciones
-- ✅ Reintentos automáticos para generar asignaciones válidas
-- ✅ Templates de emails personalizables
-- ✅ Simulación de envío sin riesgo (comportamiento por defecto)
-- ✅ Type hints completos (verificado con mypy)
-- ✅ Cobertura de tests unitarios
-- ✅ Manejo centralizado de configuración
+- ✅ Guaranteed cycle (each person gives once and receives once)
+- ✅ Bidirectional restriction validation
+- ✅ Automatic retries to generate valid assignments
+- ✅ Customizable email templates
+- ✅ Risk-free send simulation (default behavior)
+- ✅ Full type hints (checked with mypy)
+- ✅ Unit test coverage
+- ✅ Centralized configuration management
 
 ---
 
-## 📝 Licencia
+## 📝 License
 
-Este proyecto está bajo licencia **MIT** - ver archivo [LICENSE](LICENSE) para detalles.
+This project is licensed under the **MIT** license - see the [LICENSE](LICENSE) file for details.
 
-### Atribuciones
+### Attributions
 
-Este proyecto utiliza las siguientes librerías bajo licencia MIT:
+This project uses the following libraries under the MIT license:
 
-- **PyYAML** - Parser YAML: https://pyyaml.org/
-- **python-dotenv** - Carga de variables de entorno: https://github.com/theskumar/python-dotenv
+- **PyYAML** - YAML parser: https://pyyaml.org/
+- **python-dotenv** - Environment variable loading: https://github.com/theskumar/python-dotenv
 
-Para más información sobre atribuciones, ver [NOTICE.md](NOTICE.md)
+For more information about attributions, see [NOTICE.md](NOTICE.md)
 
 ---

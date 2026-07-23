@@ -172,9 +172,9 @@ __marimo__/
 pyrightconfig.json
 
 # venv virtualenv
-# OJO: no uses patrones sueltos tipo [Ss]cripts / [Ll]ib aquí: ignorarían
-# carpetas legítimas del proyecto (scripts/). El entorno virtual es .venv/,
-# ya cubierto en el bloque "Environments" de arriba.
+# NOTE: don't use loose patterns like [Ss]cripts / [Ll]ib here: they would ignore
+# legitimate project folders (scripts/). The virtual environment is .venv/,
+# already covered by the "Environments" block above.
 pyvenv.cfg
 pip-selfcheck.json
 
@@ -190,18 +190,18 @@ pip-selfcheck.json
 .ionide
 *.vsix
 
-# Configuración de Invisible Friend
-# Los secretos viven en el .env de la raíz (ya ignorado en "Environments").
-# El settings.yaml lleva nombres y emails reales de los participantes.
+# Invisible Friend configuration
+# Secrets live in the root .env (already ignored in "Environments").
+# settings.yaml holds the participants' real names and emails.
 config/settings.yaml
 
-# Datos personales generados en tiempo de ejecución
-# (ambos directorios se crean solos: file_handler.py y logger.py)
+# Personal data generated at runtime
+# (both directories are created automatically: file_handler.py and logger.py)
 output/
 logs/
 
-# Configuración local de Claude Code (rutas y permisos de esta máquina).
-# El resto de .claude/ (skills, referencias) SÍ se versiona.
+# Claude Code local configuration (paths and permissions for this machine).
+# The rest of .claude/ (skills, references) IS versioned.
 .claude/settings.local.json
 
 .plan

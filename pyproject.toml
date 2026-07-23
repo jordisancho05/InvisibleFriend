@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "invisible-friend"
 version = "1.0.0"
-description = "Aplicación para generar y enviar asignaciones de Amigo Invisible"
+description = "Application to generate and send Secret Santa (Amigo Invisible) assignments"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -65,4 +65,4 @@ disallow_untyped_defs = true
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-v"
-# La cobertura se pide a mano: pytest --cov=invisible_friend --cov-report=term-missing
+# Coverage is requested manually: pytest --cov=invisible_friend --cov-report=term-missing

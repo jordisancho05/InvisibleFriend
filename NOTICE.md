@@ -1,13 +1,13 @@
 # Notices and Attributions
 
-Este proyecto utiliza las siguientes librerías de terceros bajo la licencia MIT:
+This project uses the following third-party libraries under the MIT license:
 
 ## PyYAML
-- **Licencia**: MIT
-- **Autor**: Kirill Simonov and contributors
+- **License**: MIT
+- **Author**: Kirill Simonov and contributors
 - **URL**: https://pyyaml.org/
-- **Descripción**: Parser YAML completo para Python
-- **Licencia completa**: https://github.com/yaml/pyyaml/blob/master/LICENSE
+- **Description**: Full YAML parser for Python
+- **Full license**: https://github.com/yaml/pyyaml/blob/master/LICENSE
 
 ```
 Copyright (c) 2017-2021 Ingy döt Net
@@ -25,22 +25,22 @@ copies or substantial portions of the Software.
 ```
 
 ## Python-dotenv
-- **Licencia**: MIT
-- **Autor**: Saurabh Kumar
+- **License**: MIT
+- **Author**: Saurabh Kumar
 - **URL**: https://github.com/theskumar/python-dotenv
-- **Descripción**: Carga variables de entorno desde archivos .env
-- **Licencia completa**: https://github.com/theskumar/python-dotenv/blob/main/LICENSE
+- **Description**: Loads environment variables from .env files
+- **Full license**: https://github.com/theskumar/python-dotenv/blob/main/LICENSE
 
 ## pytest, pytest-cov, pytest-mock, ruff, mypy
-- **Licencias**: MIT y compatibles
-- Son herramientas de desarrollo y testing (no incluidas en distribución)
+- **Licenses**: MIT and compatible
+- These are development and testing tools (not included in the distribution)
 
 ---
 
-### Conformidad con licencias
+### License compliance
 
-✅ Este proyecto cumple con los términos de licencia MIT:
-- 📋 Incluye copia de la licencia MIT en [LICENSE](LICENSE)
-- 📌 Atribución a autores de dependencias en [NOTICE.md](NOTICE.md)
-- ✨ Permite uso, modificación y distribución
-- ⚖️ Sin garantía (ver términos en LICENSE)
+✅ This project complies with the terms of the MIT license:
+- 📋 Includes a copy of the MIT license in [LICENSE](LICENSE)
+- 📌 Attribution to dependency authors in [NOTICE.md](NOTICE.md)
+- ✨ Allows use, modification and distribution
+- ⚖️ No warranty (see terms in LICENSE)
