@@ -29,11 +29,15 @@ def test_subject_mentions_the_secret_friend_theme() -> None:
     assert "Bob" not in EmailTemplate.SUBJECT
 
 
-def test_html_version_is_a_full_document() -> None:
-    """The HTML variant wraps the same content in valid markup."""
-    html = EmailTemplate.render_html("Alice", "Bob")
+def test_body_has_no_leading_indentation() -> None:
+    """No line starts with whitespace: the source indentation is not the email's."""
+    body = EmailTemplate.render_body("Alice", "Bob")
 
-    assert html.strip().startswith("<html>")
-    assert html.strip().endswith("</html>")
-    assert "Alice" in html
-    assert "Bob" in html
+    indented = [line for line in body.splitlines() if line != line.lstrip()]
+
+    assert indented == [], f"these lines reach the participant indented: {indented}"
+
+
+def test_the_html_variant_is_gone() -> None:
+    """render_html was dead code; the email is plain text only."""
+    assert not hasattr(EmailTemplate, "render_html")

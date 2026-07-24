@@ -41,13 +41,17 @@
 - A participant without an email is a logged warning plus a failure count — it must not raise or
   abort the rest of the batch.
 - SMTP failures surface as `EmailError`, never as a raw `smtplib` exception escaping the service.
+- **One SMTP session per batch.** A `login()` moved back inside the per-recipient loop is a blocker:
+  it gets the sender's account flagged partway through a delivery.
+- **No receiver above DEBUG.** A log line that pairs a giver with their receiver at INFO or higher
+  writes the whole draw into `logs/`, which persists. `Email sent to <name>` is the INFO ceiling.
 
 ## Languages
 - Code is **English**: identifiers, docstrings, comments, log messages and console output. A diff
   that introduces a Spanish identifier or docstring (`Persona`, `generar_asignaciones`) is a warning.
-- **Spanish is expected in exactly one place**: the participant email copy — the subject and bodies in
-  `templates/email_template.py` and the plain-text fallback in `email_service.py`. Don't let anyone
-  "translate those to English", and don't let Spanish copy leak into a log or a variable name.
+- **Spanish is expected in exactly one place**: the participant email copy — the subject and body in
+  `templates/email_template.py`. Don't let anyone "translate those to English", and don't let Spanish
+  copy leak into a log or a variable name.
 
 ## Layering & style
 - Dependencies point downward only: `models` / `validators` never import a service; no service

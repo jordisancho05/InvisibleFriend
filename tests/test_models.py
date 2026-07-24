@@ -21,13 +21,62 @@ def test_valid_person_keeps_its_data() -> None:
         ("Alice", ""),
         ("Alice", "no-at-sign"),
         ("Alice", "domain@without-dot"),
+        ("Alice", "a@b."),
+        ("Alice", "a@ .c"),
+        ("Alice", '"@.'),
+        ("Alice", "two@at@signs.com"),
+        ("Alice", "spaced address@example.com"),
     ],
-    ids=["empty name", "empty email", "email without @", "domain without dot"],
+    ids=[
+        "empty name",
+        "empty email",
+        "email without @",
+        "domain without dot",
+        "domain without TLD",
+        "space in the domain",
+        "quote as local part",
+        "two @ signs",
+        "space in the local part",
+    ],
 )
 def test_invalid_person_raises_validation_error(name: str, email: str) -> None:
     """Both the name and a reasonably shaped email are required."""
     with pytest.raises(ValidationError):
         Person(name, email)
+
+
+@pytest.mark.parametrize(
+    "email",
+    [
+        "alice\n@example.com",
+        "alice@example.com\nBcc: victim@example.com",
+        "alice@example.com\rBcc: victim@example.com",
+    ],
+    ids=["newline in local part", "injected Bcc header", "carriage return"],
+)
+def test_email_with_a_line_break_is_rejected(email: str) -> None:
+    """A line break in an address is an SMTP header-injection attempt.
+
+    It must fail when the participant is built, not later when the stdlib
+    refuses to fold the header at send time.
+    """
+    with pytest.raises(ValidationError, match="[Ll]ine break"):
+        Person("Alice", email)
+
+
+@pytest.mark.parametrize(
+    "email",
+    [
+        "alice@example.com",
+        "alice+santa@example.com",
+        "alice.smith@mail.example.co.uk",
+        "alice_2026@example-mail.org",
+    ],
+    ids=["plain", "plus addressing", "subdomain and two-part TLD", "underscore and dash"],
+)
+def test_ordinary_addresses_are_accepted(email: str) -> None:
+    """The stricter check must not reject the shapes real people use."""
+    assert Person("Alice", email).email == email
 
 
 def test_two_people_with_the_same_name_are_the_same() -> None:

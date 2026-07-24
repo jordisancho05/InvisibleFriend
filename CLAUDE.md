@@ -14,11 +14,15 @@ each participant their assigned person over Gmail SMTP. Packaged app under `src/
   generated copies of both. All four are gitignored — keep them that way. Only the `*.example.*`
   templates are versioned, and they use fake names.
 - **Sending email is opt-in.** The default run simulates (`simulate=True` / `send=False`); only
-  `--send` opens an SMTP connection. Never flip a default to send.
+  `--send` opens an SMTP connection — and only `--send` reads `MAILSENDER` / `PASSWORD`, so a dry run
+  works with no `.env` at all. Never flip a default to send.
+- **The draw never reaches the log at INFO.** `logs/` persists long after the run, so who was drawn
+  for whom is logged at **DEBUG only** (`--debug`). INFO may name the *recipient* of a message
+  (`Email sent to Alice`), never their *receiver*. Any new log line has to keep that split.
 - **Language split**: code is **English** — identifiers, docstrings, comments, log messages, console
   output and the CLI. **Spanish is used ONLY for the copy the participants receive**: the email
-  subject and bodies in `templates/email_template.py` and the plain-text fallback body in
-  `email_service.py`. Don't translate those literals, and don't introduce Spanish anywhere else.
+  subject and body in `templates/email_template.py`. Don't translate those literals, and don't
+  introduce Spanish anywhere else.
 - **Tests never touch the outside world**: no SMTP socket, no real `.env`, no real
   `config/settings.yaml`. Patch `smtplib.SMTP_SSL`, use `tmp_path` and `monkeypatch`, fake names only.
   The tests that assert the email copy keep their Spanish substrings.
@@ -37,6 +41,7 @@ python -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"          # editable install + dev tools
 python main.py                    # generate → print → save JSON → SIMULATE the emails
 python main.py --send             # actually send
+python main.py --debug            # also record the draw itself in the log file
 # equivalent: python -m invisible_friend | invisible-friend (console script)
 pytest                            # test suite (no network, no SMTP)
 ruff check . ; mypy src           # lint + types
@@ -60,23 +65,33 @@ copy them from `.env.example` and `config/settings.example.yaml`. Full commands:
   `person[i] → person[(i+1) % n]`, retry up to `max_attempts` until the validator passes; raises
   `AssignmentError` with <2 participants or when attempts run out.
 - `services/email_service.py` — `EmailService`: builds the `EmailMessage`, sends over
-  `smtplib.SMTP_SSL`, and `send_assignments()` returns `(successful, failed)`. A participant with no
-  email is a logged warning + a failure count, never an exception. The fallback body copy is Spanish.
-- `templates/email_template.py` — `EmailTemplate`: `SUBJECT`, `render_body()` and `render_html()`
-  (Spanish copy).
-- `utils/logger.py` — `get_logger()`: singleton, UTF-8 console (INFO) + `logs/invisible_friend.log`
-  (DEBUG). `utils/file_handler.py` — `save_json` / `load_json` / `save_assignments`, UTF-8,
+  `smtplib.SMTP_SSL` over **one session reused for the whole batch** (`_session()`), and
+  `send_assignments()` returns `(successful, failed)`. A participant with no email is a logged
+  warning + a failure count, never an exception. INFO names only the recipient (`Email sent to X`),
+  never the receiver.
+- `templates/email_template.py` — `EmailTemplate`: `SUBJECT` and `render_body()` (Spanish copy,
+  plain text only).
+- `utils/logger.py` — `get_logger(name)` is a plain per-module `logging.getLogger`; the handlers live
+  on the `invisible_friend` package logger and are attached once by `configure_logging(debug=...)`,
+  which `main()` calls first. UTF-8 console + rotating `logs/invisible_friend.log`, both at INFO, or
+  DEBUG with `--debug`. Importing the package configures nothing and creates no `logs/`.
+  `utils/file_handler.py` — `save_json` / `load_json` / `save_assignments`, UTF-8,
   `ensure_ascii=False`.
-- `__main__.py` — `InvisibleFriendApp` (wires everything) + `parse_args()` / `main()`
-  (`--send`, `--config`, `--output`, `--version`). `main.py` at the root is a thin launcher.
-  `__init__.py` exposes `__version__` from installed metadata.
+- `__main__.py` — `InvisibleFriendApp` (wires everything; `_build_email_service()` reads the
+  credentials only for a real send) + `parse_args()` / `main()` (`--send`, `--debug`, `--config`,
+  `--output`, `--version`). `main.py` at the root is a thin launcher. `__init__.py` exposes
+  `__version__` from installed metadata.
 
 ## Conventions
 - Read configuration from the `Config` object, never scattered `os.getenv` or a second
   `yaml.safe_load`. New code logs via `get_logger(__name__)`, not `print` (the `print`s in
   `__main__.py` and `print_assignments()` are the deliberate CLI output).
-- Type-hint new public functions (`mypy` runs with `disallow_untyped_defs`). Raise the project's own
-  exceptions, never a bare `Exception`; chain with `raise ... from e`.
+- Type-hint new public functions (`mypy` runs with `disallow_untyped_defs` and
+  `disallow_any_generics`, so a bare `dict` is rejected). Raise the project's own exceptions, never a
+  bare `Exception`; chain with `raise ... from e`.
+- Log lazily: `logger.info("Saved to %s", path)`, not an f-string — ruff's `G` ruleset enforces it.
+- Config is validated at load time: duplicate participant names, malformed restriction pairs and
+  non-numeric `max_attempts` / `smtp_port` all raise `ConfigError` rather than failing later.
 - Layering points downward only: `models`/`validators` never import a service; no service imports
   `__main__`.
 - **Domain invariants**: the assignment is a single cycle (no fixed points, no sub-cycles), everyone

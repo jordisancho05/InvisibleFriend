@@ -10,11 +10,13 @@ each participant their assigned person over Gmail SMTP. Packaged app under `src/
 - **Never commit secrets or personal data.** `MAILSENDER` / `PASSWORD` live in the root `.env`; the
   participants' real names and emails live in `config/settings.yaml`; `output/` and `logs/` hold
   generated copies. All gitignored — only the `*.example.*` templates (fake names) are versioned.
-- **Sending email is opt-in**: the default run simulates; only `--send` opens an SMTP connection.
+- **Sending email is opt-in**: the default run simulates; only `--send` opens an SMTP connection and
+  only `--send` reads the credentials.
+- **The draw never reaches the log at INFO**: it is DEBUG-only (`--debug`). INFO may name a message's
+  recipient, never their receiver.
 - **Language split**: code is **English** (identifiers, docstrings, comments, logs, console, CLI).
-  **Spanish is used ONLY for the participant email copy** — the subject and bodies in
-  `templates/email_template.py` and the plain-text fallback in `email_service.py`. Don't translate
-  those, and don't add Spanish anywhere else.
+  **Spanish is used ONLY for the participant email copy** — the subject and body in
+  `templates/email_template.py`. Don't translate those, and don't add Spanish anywhere else.
 - **Tests never touch the outside world**: no SMTP socket, no real `.env` / `settings.yaml`. Patch
   `smtplib.SMTP_SSL`, use `tmp_path` / `monkeypatch`, fake names only. Email-copy assertions stay
   Spanish.
@@ -32,6 +34,7 @@ each participant their assigned person over Gmail SMTP. Packaged app under `src/
 pip install -e ".[dev]"          # editable install + dev tools
 python main.py                    # generate → print → save JSON → SIMULATE the emails
 python main.py --send             # actually send
+python main.py --debug            # also record the draw itself in the log file
 # equivalent: python -m invisible_friend | invisible-friend (console script)
 pytest                            # test suite (no network, no SMTP)
 ruff check . ; mypy src           # lint + types
@@ -49,12 +52,14 @@ ruff check . ; mypy src           # lint + types
 - `services/secret_santa.py` — shuffle + build the cycle `person[i] → person[(i+1) % n]`, retry to
   `max_attempts`; `AssignmentError` with <2 participants or on exhaustion.
 - `services/email_service.py` — `SMTP_SSL` send; `send_assignments()` → `(successful, failed)`; a
-  participant with no email is a warning + a failure, not an exception. Fallback body copy is Spanish.
-- `templates/email_template.py` — `SUBJECT` + `render_body()` / `render_html()` (Spanish copy).
-- `utils/` — `get_logger()` (console INFO + `logs/` DEBUG) and `FileHandler`
+  participant with no email is a warning + a failure, not an exception. One SMTP session per batch;
+  INFO names the recipient, never the receiver.
+- `templates/email_template.py` — `SUBJECT` + `render_body()` (Spanish copy, plain text only).
+- `utils/` — `get_logger(name)` (per-module) + `configure_logging(debug=...)`, which attaches the
+  UTF-8 console and rotating file handlers to the package logger; and `FileHandler`
   (`save_json` / `load_json` / `save_assignments`, UTF-8).
-- `__main__.py` — `InvisibleFriendApp` + `parse_args()` / `main()` (`--send`, `--config`, `--output`,
-  `--version`); root `main.py` is a thin launcher; `__init__.py` exposes `__version__`.
+- `__main__.py` — `InvisibleFriendApp` + `parse_args()` / `main()` (`--send`, `--debug`, `--config`,
+  `--output`, `--version`); root `main.py` is a thin launcher; `__init__.py` exposes `__version__`.
 
 ## Conventions
 - Read config from the `Config` object, not scattered `os.getenv`. New code logs via

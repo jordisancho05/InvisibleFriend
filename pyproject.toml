@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "invisible-friend"
-version = "1.0.0"
+version = "1.1.0"
 description = "Application to generate and send Secret Santa (Amigo Invisible) assignments"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -52,17 +52,25 @@ select = [
     "UP",   # pyupgrade
     "B",    # flake8-bugbear
     "SIM",  # flake8-simplify
+    "S",    # flake8-bandit (caught the non-cryptographic RNG in the draw)
+    "G",    # flake8-logging-format (no f-strings in logging calls)
+    "RET",  # flake8-return
+    "C4",   # flake8-comprehensions
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# El template HTML es un documento embebido: sus líneas largas son inherentes al marcado.
-"src/invisible_friend/templates/email_template.py" = ["E501"]
+# S101: assert is how pytest tests express themselves.
+# S105/S106: the credentials in the fixtures are fictional, like every other
+# piece of test data — the real ones live in the gitignored .env.
+"tests/*" = ["S101", "S105", "S106"]
 
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+disallow_any_generics = true
+strict_equality = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

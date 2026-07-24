@@ -1,7 +1,14 @@
-"""Email sending service."""
+"""Email sending service.
+
+Two rules shape this module: `simulate=True` never opens a socket, and the log
+records *that* a message went out, never *what* it revealed — the receiver's
+name belongs in the inbox, not in `logs/`.
+"""
 
 import smtplib
 import ssl
+from collections.abc import Iterator
+from contextlib import ExitStack, contextmanager
 from email.message import EmailMessage
 
 from invisible_friend.exceptions import EmailError
@@ -48,13 +55,33 @@ class EmailService:
         email.set_content(body)
         return email
 
-    def send_email(self, recipient: str, email: EmailMessage) -> bool:
+    @contextmanager
+    def _session(self) -> Iterator[smtplib.SMTP_SSL]:
+        """
+        Open one authenticated SMTP session.
+
+        Yields:
+            A logged-in SMTP_SSL connection, closed on exit
+        """
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, context=context) as smtp:
+            smtp.login(self.email_sender, self.password)
+            yield smtp
+
+    def send_email(
+        self,
+        recipient: str,
+        email: EmailMessage,
+        connection: smtplib.SMTP_SSL | None = None,
+    ) -> bool:
         """
         Send an email over SMTP.
 
         Args:
             recipient: Recipient email address
             email: EmailMessage object
+            connection: An already authenticated session to reuse. Without it a
+                new one is opened just for this message
 
         Returns:
             True if it was sent successfully
@@ -63,12 +90,13 @@ class EmailService:
             EmailError: If sending fails
         """
         try:
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, context=context) as smtp:
-                smtp.login(self.email_sender, self.password)
-                smtp.sendmail(self.email_sender, recipient, email.as_string())
+            if connection is None:
+                with self._session() as smtp:
+                    smtp.sendmail(self.email_sender, recipient, email.as_string())
+            else:
+                connection.sendmail(self.email_sender, recipient, email.as_string())
 
-            logger.info(f"Email sent successfully to {recipient}")
+            logger.debug("Message accepted by the server for %s", recipient)
             return True
         except smtplib.SMTPException as e:
             error_msg = f"SMTP error while sending email to {recipient}: {e}"
@@ -84,7 +112,7 @@ class EmailService:
         recipient: str,
         person_name: str,
         assigned_person: str,
-        use_template: bool = True,
+        connection: smtplib.SMTP_SSL | None = None,
     ) -> bool:
         """
         Send the email with the Secret Santa assignment.
@@ -93,34 +121,23 @@ class EmailService:
             recipient: Recipient email address
             person_name: Name of the recipient
             assigned_person: Name of their secret friend
-            use_template: Whether to use the template body
+            connection: An already authenticated session to reuse
 
         Returns:
             True if it was sent successfully
-        """
-        try:
-            if use_template:
-                body = EmailTemplate.render_body(person_name, assigned_person)
-                subject = EmailTemplate.SUBJECT
-            else:
-                subject = "Amigo Invisible"
-                body = (
-                    f"Hola {person_name},\n\n"
-                    f"Tu amigo invisible es {assigned_person}.\n\n"
-                    "¡Que disfrutes!"
-                )
 
-            email = self.create_email(recipient, subject, body)
-            return self.send_email(recipient, email)
-        except Exception as e:
-            logger.error(f"Error while sending assignment to {person_name}: {e}")
-            raise EmailError(f"Error while sending assignment: {e}") from e
+        Raises:
+            EmailError: If sending fails (raised by `send_email`, not re-wrapped)
+        """
+        body = EmailTemplate.render_body(person_name, assigned_person)
+        email = self.create_email(recipient, EmailTemplate.SUBJECT, body)
+        return self.send_email(recipient, email, connection)
 
     def send_assignments(
         self, assignments: dict[str, str], emails: dict[str, str], simulate: bool = False
     ) -> tuple[int, int]:
         """
-        Send emails to multiple people.
+        Send emails to multiple people over a single SMTP session.
 
         Args:
             assignments: Dict {person_name: secret_friend}
@@ -129,29 +146,47 @@ class EmailService:
 
         Returns:
             Tuple (successful, failed)
+
+        Raises:
+            EmailError: If the SMTP session cannot be opened at all
         """
         successful = 0
         failed = 0
 
-        logger.info(f"Starting email delivery {'(SIMULATION)' if simulate else ''}")
+        logger.info("Starting email delivery%s", " (SIMULATION)" if simulate else "")
 
-        for person_name, assigned_person in assignments.items():
-            recipient_email = emails.get(person_name)
+        try:
+            with ExitStack() as stack:
+                # One login for the whole batch: authenticating once per
+                # recipient is what makes Gmail flag the account mid-delivery.
+                # Simulating enters no session at all.
+                connection = None if simulate else stack.enter_context(self._session())
 
-            if not recipient_email:
-                logger.warning(f"No email for {person_name}, skipping")
-                failed += 1
-                continue
+                for person_name, assigned_person in assignments.items():
+                    recipient_email = emails.get(person_name)
 
-            if simulate:
-                logger.info(f"[SIMULATED] Email to {person_name}: {assigned_person}")
-                successful += 1
-            else:
-                try:
-                    self.send_assignment(recipient_email, person_name, assigned_person)
-                    successful += 1
-                except EmailError:
-                    failed += 1
+                    if not recipient_email:
+                        logger.warning("No email for %s, skipping", person_name)
+                        failed += 1
+                        continue
 
-        logger.info(f"Delivery finished: {successful} successful, {failed} failed")
+                    if simulate:
+                        logger.info("Email simulated to %s", person_name)
+                        successful += 1
+                        continue
+
+                    try:
+                        self.send_assignment(
+                            recipient_email, person_name, assigned_person, connection
+                        )
+                        logger.info("Email sent to %s", person_name)
+                        successful += 1
+                    except EmailError:
+                        failed += 1
+        except smtplib.SMTPException as e:
+            error_msg = f"Could not open the SMTP session: {e}"
+            logger.error(error_msg)
+            raise EmailError(error_msg) from e
+
+        logger.info("Delivery finished: %s successful, %s failed", successful, failed)
         return successful, failed

@@ -164,9 +164,33 @@ python main.py --help
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--send` | Actually sends the emails | disabled (simulates) |
+| `--debug` | Also records the draw itself in the log file | disabled |
 | `--config PATH` | Path to the participants YAML | `config/settings.yaml` |
 | `--output PATH` | Where to save the assignments JSON | `output/assignments.json` |
 | `--version` | Show the version | — |
+
+### What ends up in the log
+
+`logs/invisible_friend.log` outlives the run, so by default it records **that** a message went out
+and nothing more:
+
+```
+INFO - Email simulated to Alice
+INFO - Delivery finished: 4 successful, 0 failed
+```
+
+The draw itself is only written when you ask for it, so a log left lying around does not spoil the
+game:
+
+```bash
+python main.py --debug     # adds: DEBUG - Assignment: Alice -> Bob
+```
+
+The console output and `output/assignments.json` always show the full draw — that is what you run
+the app to see. The log file is the one that persists silently, so that is the one that stays quiet.
+
+> `--send` is also the only thing that reads `MAILSENDER` / `PASSWORD`. A simulated run works on a
+> fresh clone with no `.env` at all.
 
 ### Equivalent ways to run it
 ```bash
@@ -224,7 +248,7 @@ mypy src            # type checking
 | **EmailService** | Create and send emails via SMTP |
 | **EmailTemplate** | Email body in plain text and HTML |
 | **FileHandler** | Save/load data as JSON |
-| **LoggerConfig** | Centralized logging system (console + file) |
+| **logger** | `get_logger()` per module + `configure_logging()` (console + rotating file) |
 | **InvisibleFriendApp** | Orchestrates the full flow from the CLI |
 
 ---

@@ -9,6 +9,10 @@ from invisible_friend.validators import PairValidator
 
 logger = get_logger(__name__)
 
+# The draw is the secret this app exists to protect, so it is not drawn from the
+# default Mersenne Twister, whose state is reconstructible from its output.
+_rng = random.SystemRandom()
+
 
 class SecretSantaService:
     """Generates valid Secret Santa assignments."""
@@ -43,12 +47,12 @@ class SecretSantaService:
         if len(participants) < 2:
             raise AssignmentError("At least 2 participants are required")
 
-        logger.info(f"Generating assignments for {len(participants)} participants")
+        logger.info("Generating assignments for %s participants", len(participants))
 
         for attempt in range(self.max_attempts):
             # Copy and shuffle.
             shuffled = participants.copy()
-            random.shuffle(shuffled)
+            _rng.shuffle(shuffled)
 
             # Validate that the cycle is valid.
             if self.validator.validate_cycle(shuffled):
@@ -57,7 +61,7 @@ class SecretSantaService:
                     shuffled[i]: shuffled[(i + 1) % len(shuffled)] for i in range(len(shuffled))
                 }
 
-                logger.info(f"Assignments generated successfully on attempt {attempt + 1}")
+                logger.info("Assignments generated successfully on attempt %s", attempt + 1)
                 return assignments
 
         error_msg = f"Could not generate valid assignments after {self.max_attempts} attempts"
@@ -85,6 +89,7 @@ class SecretSantaService:
         """
         logger.info("=== SECRET SANTA ASSIGNMENTS ===")
         for giver, receiver in assignments.items():
-            email = giver.email if giver.email else "[no email]"
-            print(f"  {giver.name} (email: {email}) -> {receiver.name}")
-            logger.debug(f"Assignment: {giver.name} -> {receiver.name}")
+            print(f"  {giver.name} (email: {giver.email}) -> {receiver.name}")
+            # DEBUG on purpose: this is the draw itself, so it only reaches the
+            # log file when the run is explicitly started with --debug.
+            logger.debug("Assignment: %s -> %s", giver.name, receiver.name)

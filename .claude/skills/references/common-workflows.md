@@ -32,15 +32,17 @@
 - Gotcha: a stricter rule can make the problem unsatisfiable; assert the `AssignmentError` path too.
 
 ## Change the email content / template
-1. `templates/email_template.py` → `SUBJECT`, `render_body()` (plain text) and/or
-   `render_html()`. Copy stays in **Spanish** (the only Spanish in the code).
+1. `templates/email_template.py` → `SUBJECT` and `render_body()` (plain text). Copy stays in
+   **Spanish** (the only Spanish in the code).
 2. `services/email_service.py` → only if the *sending* changes (headers, MIME parts, HTML alternative);
    the wording never lives in the service.
 3. Test: `tests/test_email_service.py` (or `tests/test_email_template.py`) → assert the rendered
    body contains the recipient's name and their assigned person, with **fake names**; the Spanish
    copy assertions are the one place Spanish is expected in a test.
-- Gotcha: `send_assignment(use_template=True)` currently sends the plain-text body;
-  `render_html()` is not wired into any send path.
+- Gotcha: the email is plain text only. `render_html()` was removed as dead code, so adding an HTML
+  alternative means wiring `add_alternative(..., subtype="html")` in `email_service.py` too.
+- Gotcha: `render_body()` builds its lines by concatenation on purpose. A triple-quoted literal would
+  bake this file's indentation into the message the participants read.
 
 ## Add a CLI flag
 1. `src/invisible_friend/__main__.py` → add the argument in `parse_args()` (next to `--send`,

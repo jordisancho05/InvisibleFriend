@@ -4,6 +4,7 @@ No test opens a socket: `smtplib.SMTP_SSL` is always patched and bulk sends use
 `simulate=True`.
 """
 
+import logging
 import smtplib
 from unittest.mock import MagicMock, patch
 
@@ -11,6 +12,7 @@ import pytest
 
 from invisible_friend.exceptions import EmailError
 from invisible_friend.services.email_service import EmailService
+from invisible_friend.utils.logger import PACKAGE_LOGGER
 
 
 def test_create_email_fills_the_headers(email_service: EmailService) -> None:
@@ -52,11 +54,9 @@ def test_smtp_error_is_translated_to_email_error(
 
 
 def test_send_assignment_uses_the_template(email_service: EmailService) -> None:
-    """With use_template=True the body is rendered by EmailTemplate."""
+    """The body is always rendered by EmailTemplate: there is no second path."""
     with patch.object(email_service, "send_email", return_value=True) as mock_send:
-        result = email_service.send_assignment(
-            "recipient@example.com", "Alice", "Bob", use_template=True
-        )
+        result = email_service.send_assignment("recipient@example.com", "Alice", "Bob")
 
     assert result is True
     sent_email = mock_send.call_args.args[1]
@@ -65,15 +65,53 @@ def test_send_assignment_uses_the_template(email_service: EmailService) -> None:
     assert "Bob" in body
 
 
-def test_send_assignment_without_template_uses_plain_text(email_service: EmailService) -> None:
-    """With use_template=False the body is the short message, in Spanish."""
-    with patch.object(email_service, "send_email", return_value=True) as mock_send:
-        email_service.send_assignment("recipient@example.com", "Alice", "Bob", use_template=False)
+def test_the_plain_text_fallback_is_gone(email_service: EmailService) -> None:
+    """use_template was dead code: the template is the only body."""
+    import inspect
 
-    sent_email = mock_send.call_args.args[1]
-    assert sent_email["Subject"] == "Amigo Invisible"
-    assert "Hola Alice," in sent_email.get_content()
-    assert "tu amigo invisible es bob" in sent_email.get_content().lower()
+    assert "use_template" not in inspect.signature(email_service.send_assignment).parameters
+
+
+@patch("smtplib.SMTP_SSL")
+def test_the_whole_batch_uses_a_single_login(
+    mock_smtp: MagicMock, email_service: EmailService
+) -> None:
+    """One connection and one login for everyone, not one per recipient.
+
+    A login per participant is what makes Gmail flag the account halfway
+    through a batch.
+    """
+    connection = MagicMock()
+    mock_smtp.return_value.__enter__.return_value = connection
+
+    successful, failed = email_service.send_assignments(
+        {"Alice": "Bob", "Bob": "Charlie", "Charlie": "Alice"},
+        {
+            "Alice": "alice@example.com",
+            "Bob": "bob@example.com",
+            "Charlie": "charlie@example.com",
+        },
+        simulate=False,
+    )
+
+    assert (successful, failed) == (3, 0)
+    assert mock_smtp.call_count == 1, "one SMTP connection for the whole batch"
+    connection.login.assert_called_once_with("sender@example.com", "app-password")
+    assert connection.sendmail.call_count == 3
+
+
+def test_the_logs_never_name_the_receiver(
+    email_service: EmailService, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The log says a message went out, never what it revealed."""
+    with caplog.at_level(logging.INFO, logger=PACKAGE_LOGGER):
+        email_service.send_assignments(
+            {"Alice": "Bob"}, {"Alice": "alice@example.com"}, simulate=True
+        )
+
+    logged = "\n".join(record.getMessage() for record in caplog.records)
+    assert "Alice" in logged, "the recipient is still traceable"
+    assert "Bob" not in logged, "the receiver leaked into the log"
 
 
 def test_simulated_bulk_send_does_not_touch_the_network(email_service: EmailService) -> None:
