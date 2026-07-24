@@ -1,11 +1,19 @@
 """Data models for Invisible Friend."""
 
+import re
 from dataclasses import dataclass, field
 
 from invisible_friend.exceptions import ValidationError
 
+# One local part, one @, one dotted domain with an alphabetic TLD. Deliberately
+# conservative rather than RFC-complete: it only has to catch typos and the
+# shapes that would be dangerous downstream.
+_EMAIL_PATTERN = re.compile(r"[^@\s]+@[^@\s]+\.[A-Za-z]{2,}")
 
-@dataclass
+
+# eq=False: the dunders below are hand-written because identity is the name
+# alone, not the (name, email) pair the dataclass would generate.
+@dataclass(eq=False)
 class Person:
     """A participant in the Secret Santa draw."""
 
@@ -18,13 +26,17 @@ class Person:
             raise ValidationError("Name must be a non-empty string")
         if not self.email or not isinstance(self.email, str):
             raise ValidationError("Email is required")
+        if "\n" in self.email or "\r" in self.email:
+            # A line break in an address is how SMTP headers get injected. Fail
+            # here, not later when the stdlib refuses to fold the header.
+            raise ValidationError("Email cannot contain a line break")
         if not self._is_valid_email(self.email):
             raise ValidationError(f"Invalid email: {self.email}")
 
     @staticmethod
     def _is_valid_email(email: str) -> bool:
-        """Check the basic shape of an email address."""
-        return "@" in email and "." in email.split("@")[1]
+        """Check the shape of an email address."""
+        return _EMAIL_PATTERN.fullmatch(email) is not None
 
     def __repr__(self) -> str:
         return f"Person(name='{self.name}', email='{self.email}')"

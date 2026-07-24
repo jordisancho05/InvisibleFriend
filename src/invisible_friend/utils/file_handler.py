@@ -29,9 +29,9 @@ class FileHandler:
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            logger.info(f"Data saved to {path}")
+            logger.info("Data saved to %s", path)
         except Exception as e:
-            logger.error(f"Error saving file {path}: {e}")
+            logger.error("Error saving file %s: %s", path, e)
             raise InvisibleFriendError(f"Error saving JSON: {e}") from e
 
     @staticmethod
@@ -54,13 +54,13 @@ class FileHandler:
 
             with open(path, encoding="utf-8") as f:
                 data: dict[str, Any] = json.load(f)
-            logger.info(f"Data loaded from {path}")
+            logger.info("Data loaded from %s", path)
             return data
         except json.JSONDecodeError as e:
-            logger.error(f"Error parsing JSON {path}: {e}")
+            logger.error("Error parsing JSON %s: %s", path, e)
             raise InvisibleFriendError(f"Error loading JSON: {e}") from e
         except Exception as e:
-            logger.error(f"Error loading file {path}: {e}")
+            logger.error("Error loading file %s: %s", path, e)
             raise InvisibleFriendError(f"Error loading file: {e}") from e
 
     @staticmethod

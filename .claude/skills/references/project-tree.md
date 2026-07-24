@@ -31,7 +31,7 @@ Pinvisiblefriend/
 │       ├── templates/
 │       │   └── email_template.py # EmailTemplate: Spanish body (text + HTML)
 │       └── utils/
-│           ├── logger.py         # get_logger(): singleton, console INFO + file DEBUG
+│           ├── logger.py         # get_logger() per module + configure_logging(debug=...)
 │           └── file_handler.py   # FileHandler: JSON save/load
 ├── tests/
 │   ├── __init__.py

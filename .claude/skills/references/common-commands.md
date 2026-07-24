@@ -20,14 +20,18 @@ Copy-Item config\settings.example.yaml config\settings.yaml   # then fill partic
 ```powershell
 python main.py                             # generate → print → save JSON → SIMULATE the emails
 python main.py --send                      # actually send over SMTP
+python main.py --debug                     # also record the draw itself in the log file
 python main.py --config other.yaml --output out.json
 python main.py --help                      # all flags
 # equivalent entry points:
 python -m invisible_friend
 invisible-friend                           # console script (after pip install -e .)
 ```
-- The default run **does not send email**: `--send` is the only path that opens an SMTP connection.
-- Output lands in `output/assignments.json`; logs in `logs/invisible_friend.log`.
+- The default run **does not send email**: `--send` is the only path that opens an SMTP connection,
+  and the only one that reads `MAILSENDER` / `PASSWORD`. A dry run needs no `.env`.
+- Output lands in `output/assignments.json`; logs in `logs/invisible_friend.log` (rotating).
+- **The log never records who was drawn for whom unless you pass `--debug`.** A normal run logs at
+  most `Email sent to <name>`. Use `--debug` to review a past draw, and remember the file keeps it.
 
 ## Test
 ```powershell

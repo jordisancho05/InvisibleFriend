@@ -7,7 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-24
+
+Security and robustness pass over the whole codebase. Nothing in the public API breaks.
+
 ### Added
+- **`--debug` flag.** The draw (`Assignment: Alice -> Bob`) is now logged at DEBUG only, so a normal
+  run never writes who was drawn for whom into `logs/invisible_friend.log`. Pass `--debug` to record
+  it when you actually want to review a past draw.
+- The log file **rotates** (`RotatingFileHandler`) instead of growing without bound.
+- `configure_logging(debug=False)` in `utils/logger.py`, called first thing by `main()`.
+- Config validation at load time, all raising `ConfigError`: duplicate participant names, malformed
+  restriction pairs, restrictions naming someone who is not a participant, and non-numeric
+  `max_attempts` / `smtp_port`.
+- Ruff rulesets `S` (bandit), `G` (logging format), `RET` and `C4`; mypy `disallow_any_generics` and
+  `strict_equality`.
+
+### Changed
+- **A simulated run no longer needs credentials.** `MAILSENDER` / `PASSWORD` are read only on the
+  `--send` path, so `python main.py` works on a fresh clone with no `.env`.
+- **One SMTP session for the whole batch.** `login()` used to run once per recipient, which gets the
+  sender's account flagged partway through a delivery.
+- The delivery log names only the recipient (`Email sent to Alice`), never their receiver.
+- The draw is shuffled with `random.SystemRandom` instead of the default Mersenne Twister.
+- `Person` validates emails against a regex and rejects addresses containing a line break (an SMTP
+  header-injection attempt) at construction time rather than at send time.
+- `Person` is now `@dataclass(eq=False)`, making the hand-written name-based `__eq__` / `__hash__`
+  explicit instead of relying on dataclass not overwriting them.
+- `render_body()` no longer leaks the source file's indentation into the message participants read.
+- Config errors reference a participant's **position** instead of dumping the YAML entry, which
+  contained their email address.
+- Logging calls use lazy `%s` formatting throughout.
+
+### Fixed
+- **Duplicate participant names silently dropped someone from the draw.** Identity is the name, so a
+  repeated name overwrote the earlier entry: four participants produced three assignments, with no
+  error. Now rejected at config load.
+- **`get_logger()` ignored its argument.** A process-wide singleton cached the first logger and
+  returned it to every caller, so every module's records were attributed to whichever module happened
+  to log first. Each module now gets its own logger.
+- **A malformed restriction was silently ignored.** A bare string became a `frozenset` of its
+  characters, so the rule never matched anyone.
+- Importing the package no longer creates `logs/` as a side effect.
+
+### Removed
+- `EmailTemplate.render_html()` — dead code, wired into no send path.
+- The `use_template` parameter of `send_assignment()` and its plain-text fallback body — the template
+  is the only path.
+- The double-wrapping of `EmailError` in `send_assignment()`, which logged every failure twice.
+
+### Also in this release (work landed since 1.0.0)
+
+#### Added
 - **CI**: `.github/workflows/ci.yml` runs on every pull request to `master` (and on push to `master`):
   a lint/type-check job (`ruff check`, `ruff format --check`, `mypy src`) plus a test job across
   Python 3.11/3.12/3.13 (`pytest` with coverage). No secrets needed — the suite mocks SMTP and uses
@@ -25,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The suite goes from 23 to 75 tests, ~97% coverage.
 - `scripts/demo.py` (the former root-level `examples.py`).
 
-### Changed
+#### Changed
 - **Codebase translated to English.** Every identifier, docstring, comment, log message and console
   string is now English (`Persona`→`Person`, `ParejaValidator`→`PairValidator`,
   `generar_asignaciones`→`generate_assignments`, `ejecutar_completo`→`run`, `nombre`→`name`, …).
@@ -55,13 +106,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Agent documentation (`CLAUDE.md`, `.github/copilot-instructions.md`, `.claude/skills/`) rewritten
   for this project; it had been copied from another repository and described a different app.
 
-### Fixed
+#### Fixed
 - `.gitignore` no longer swallows the `scripts/` directory: the virtualenv pattern block contained
   `[Ss]cripts`, which matched any folder named `scripts` at any depth. `.claude/` and `.github/`
   are versioned now, and the stale `config/.env` and `invisiblefriend/` entries are gone.
 - Removed a leaked API-token fixture from `.claude/skills/pr-review/evals/evals.json`.
 
-### Removed
+#### Removed
 - The legacy `invisiblefriend.py` script, a pre-package monolith carrying real participant names
   and emails hardcoded in the source.
 - black, flake8, pylint and ipython from the `dev` extra.
@@ -87,5 +138,6 @@ First stable release.
 - pytest suite covering the validators, the assignment service and the email service.
 - `pyproject.toml` with the runtime dependencies, a `dev` extra and SemVer versioning.
 
-[Unreleased]: https://github.com/jordisancho05/InvisibleFriend/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/jordisancho05/InvisibleFriend/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/jordisancho05/InvisibleFriend/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jordisancho05/InvisibleFriend/releases/tag/v1.0.0

@@ -18,7 +18,9 @@ email:
   smtp_port: 465
 
 # List of participants
-# ⚠️ IMPORTANT: the email is REQUIRED for every participant
+# ⚠️ IMPORTANT: the email is REQUIRED for every participant, and the names must
+# be UNIQUE — participants are identified by name, so a repeated one is
+# rejected on startup rather than silently dropping someone from the draw.
 participants:
   - name: "Person 1"
     email: "person1@example.com"
@@ -35,8 +37,9 @@ participants:
 # Pairs that must NOT be assigned together.
 # Format: [Person1, Person2]. The restriction is bidirectional: it prevents
 # both the first giving to the second and the other way around.
-# ⚠️ The names must match EXACTLY those in the list above, spaces included;
-# otherwise the restriction is silently ignored.
+# ⚠️ The names must match EXACTLY those in the list above, spaces included.
+# A pair that is not exactly two names, or that names someone who is not a
+# participant, is rejected on startup with a ConfigError — it is never ignored.
 restrictions:
   - ["Person 1", "Person 2"]
   - ["Person 3", "Person 4"]

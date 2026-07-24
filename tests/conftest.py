@@ -4,12 +4,36 @@ All the data is fictional: the real participants live only in
 `config/settings.yaml`, which is not versioned and no test should read.
 """
 
+import logging
+from collections.abc import Iterator
+
 import pytest
 
 from invisible_friend.models import Person
 from invisible_friend.services.email_service import EmailService
 from invisible_friend.services.secret_santa import SecretSantaService
+from invisible_friend.utils.logger import PACKAGE_LOGGER
 from invisible_friend.validators import PairValidator
+
+
+@pytest.fixture(autouse=True)
+def isolated_logging() -> Iterator[None]:
+    """Undo any `configure_logging()` a test performs.
+
+    Handlers are global state: without this, a test that configures logging
+    leaves an open file handle on its `tmp_path` and pollutes the next one.
+    """
+    logger = logging.getLogger(PACKAGE_LOGGER)
+    original_handlers = logger.handlers[:]
+    original_level = logger.level
+
+    yield
+
+    for handler in logger.handlers[:]:
+        if handler not in original_handlers:
+            handler.close()
+            logger.removeHandler(handler)
+    logger.setLevel(original_level)
 
 
 @pytest.fixture

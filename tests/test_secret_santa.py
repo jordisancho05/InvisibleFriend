@@ -4,14 +4,58 @@ The service shuffles at random, so these tests pin **invariants** over many
 runs, never one concrete expected mapping.
 """
 
+import logging
+import random
+
 import pytest
 
 from invisible_friend.exceptions import AssignmentError
 from invisible_friend.models import Person
+from invisible_friend.services import secret_santa
 from invisible_friend.services.secret_santa import SecretSantaService
+from invisible_friend.utils.logger import PACKAGE_LOGGER
 from invisible_friend.validators import PairValidator
 
 REPETITIONS = 25
+
+
+def test_the_draw_uses_a_system_random_source() -> None:
+    """The draw is a secret, so it is not drawn from the Mersenne Twister."""
+    assert isinstance(secret_santa._rng, random.SystemRandom)
+
+
+def test_no_receiver_is_logged_at_info_level(
+    service: SecretSantaService,
+    participants: list[Person],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A normal run must not record who was drawn for whom.
+
+    The log file outlives the run, so INFO is the level that decides whether
+    the whole draw ends up on disk.
+    """
+    with caplog.at_level(logging.INFO, logger=PACKAGE_LOGGER):
+        assignments = service.generate_assignments(participants)
+        service.print_assignments(assignments)
+
+    logged = "\n".join(record.getMessage() for record in caplog.records)
+    for person in participants:
+        assert person.name not in logged, f"{person.name} reached the log at INFO level"
+
+
+def test_the_assignment_detail_is_logged_at_debug_level(
+    service: SecretSantaService,
+    participants: list[Person],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Under --debug the detail is still there, so a draw can be reviewed."""
+    with caplog.at_level(logging.DEBUG, logger=PACKAGE_LOGGER):
+        assignments = service.generate_assignments(participants)
+        service.print_assignments(assignments)
+
+    logged = "\n".join(record.getMessage() for record in caplog.records)
+    for giver, receiver in assignments.items():
+        assert f"{giver.name} -> {receiver.name}" in logged
 
 
 def test_everyone_gives_and_receives_exactly_once(
