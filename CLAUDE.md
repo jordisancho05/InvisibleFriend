@@ -18,7 +18,8 @@ each participant their assigned person over Gmail SMTP. Packaged app under `src/
   works with no `.env` at all. Never flip a default to send.
 - **The draw never reaches the log at INFO.** `logs/` persists long after the run, so who was drawn
   for whom is logged at **DEBUG only** (`--debug`). INFO may name the *recipient* of a message
-  (`Email sent to Alice`), never their *receiver*. Any new log line has to keep that split.
+  (`Email sent to Alice`), never their *receiver*. Any new log line has to keep that split. Under
+  `--hide-draw` the console must not show the draw either, which is why that flag excludes `--debug`.
 - **Language split**: code is **English** — identifiers, docstrings, comments, log messages, console
   output and the CLI. **Spanish is used ONLY for the copy the participants receive**: the email
   subject and body in `templates/email_template.py`. Don't translate those literals, and don't
@@ -42,6 +43,7 @@ pip install -e ".[dev]"          # editable install + dev tools
 python main.py                    # generate → print → save JSON → SIMULATE the emails
 python main.py --send             # actually send
 python main.py --debug            # also record the draw itself in the log file
+python main.py --send --hide-draw # send without printing who got whom (organiser who takes part)
 # equivalent: python -m invisible_friend | invisible-friend (console script)
 pytest                            # test suite (no network, no SMTP)
 ruff check . ; mypy src           # lint + types
@@ -78,9 +80,11 @@ copy them from `.env.example` and `config/settings.example.yaml`. Full commands:
   `utils/file_handler.py` — `save_json` / `load_json` / `save_assignments`, UTF-8,
   `ensure_ascii=False`.
 - `__main__.py` — `InvisibleFriendApp` (wires everything; `_build_email_service()` reads the
-  credentials only for a real send) + `parse_args()` / `main()` (`--send`, `--debug`, `--config`,
-  `--output`, `--version`). `main.py` at the root is a thin launcher. `__init__.py` exposes
-  `__version__` from installed metadata.
+  credentials only for a real send) + `parse_args()` / `main()` (`--send`, `--debug`,
+  `--hide-draw`, `--config`, `--output`, `--version`). `--hide-draw` skips printing the draw (the
+  JSON still records it) and is mutually exclusive with `--debug`, whose console handler would echo
+  it. `main.py` at the root is a thin launcher. `__init__.py` exposes `__version__` from installed
+  metadata.
 
 ## Conventions
 - Read configuration from the `Config` object, never scattered `os.getenv` or a second

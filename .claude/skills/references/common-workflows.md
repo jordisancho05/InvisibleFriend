@@ -54,6 +54,9 @@
    flag changes the branch taken, monkeypatching the collaborators; no SMTP, no real config file.
 - Gotcha: real sending must stay explicit and opt-in. `send` / `simulate` default to not sending —
   never flip that, and never add a flag whose *absence* sends.
+- Gotcha: anything that prints the draw must honour `--hide-draw`. A flag that would echo the draw
+  to the console (as `--debug` does through the console log handler) joins `--debug` in the mutually
+  exclusive group in `parse_args()`.
 
 ## Bump the version (SemVer)
 1. Decide the bump: **patch** (fix), **minor** (backward-compatible feat), **major** (breaking).

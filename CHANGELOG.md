@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`--hide-draw` flag**, for an organiser who also takes part: the console shows the progress and
+  the delivery summary but no assignment, so `python main.py --send --hide-draw` delivers the emails
+  without the organiser learning who got whom. `output/assignments.json` still records the full draw
+  as the backup for a failed email. Mutually exclusive with `--debug`, which echoes the draw to the
+  console.
+
 ## [1.1.0] - 2026-07-24
 
 Security and robustness pass over the whole codebase. Nothing in the public API breaks.

@@ -55,9 +55,11 @@ simulates.
 - `InvisibleFriendApp` wires `Config` → `PairValidator` → `SecretSantaService` in `__init__`; the
   `EmailService` is built later by `_build_email_service(simulate)`, which reads
   `MAILSENDER` / `PASSWORD` **only for a real send** — a simulated run works on a checkout with no
-  `.env`. `run(send=False, output_path=...)` runs the 4 steps: generate → print → save to
-  `output/assignments.json` → send (**simulated unless `send=True`**).
-- `parse_args()` defines `--send` (default `False`), `--debug` (default `False`), `--config` (default
+  `.env`. `run(send=False, output_path=..., hide_draw=False)` runs the 4 steps: generate → print
+  (under `hide_draw=True` only the count is logged) → save to `output/assignments.json` → send
+  (**simulated unless `send=True`**).
+- `parse_args()` defines `--send` (default `False`), `--debug` and `--hide-draw` (default `False`,
+  mutually exclusive: `--debug` echoes the draw to the console), `--config` (default
   `config/settings.yaml`), `--output` (default `output/assignments.json`) and `--version`.
 - `main()` calls `configure_logging(debug=args.debug)` first, so even a config failure is logged at
   the requested level.

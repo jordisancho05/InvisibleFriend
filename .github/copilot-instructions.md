@@ -13,7 +13,7 @@ each participant their assigned person over Gmail SMTP. Packaged app under `src/
 - **Sending email is opt-in**: the default run simulates; only `--send` opens an SMTP connection and
   only `--send` reads the credentials.
 - **The draw never reaches the log at INFO**: it is DEBUG-only (`--debug`). INFO may name a message's
-  recipient, never their receiver.
+  recipient, never their receiver. `--hide-draw` keeps it off the console too (excludes `--debug`).
 - **Language split**: code is **English** (identifiers, docstrings, comments, logs, console, CLI).
   **Spanish is used ONLY for the participant email copy** — the subject and body in
   `templates/email_template.py`. Don't translate those, and don't add Spanish anywhere else.
@@ -35,6 +35,7 @@ pip install -e ".[dev]"          # editable install + dev tools
 python main.py                    # generate → print → save JSON → SIMULATE the emails
 python main.py --send             # actually send
 python main.py --debug            # also record the draw itself in the log file
+python main.py --send --hide-draw # send without printing who got whom
 # equivalent: python -m invisible_friend | invisible-friend (console script)
 pytest                            # test suite (no network, no SMTP)
 ruff check . ; mypy src           # lint + types
@@ -58,8 +59,9 @@ ruff check . ; mypy src           # lint + types
 - `utils/` — `get_logger(name)` (per-module) + `configure_logging(debug=...)`, which attaches the
   UTF-8 console and rotating file handlers to the package logger; and `FileHandler`
   (`save_json` / `load_json` / `save_assignments`, UTF-8).
-- `__main__.py` — `InvisibleFriendApp` + `parse_args()` / `main()` (`--send`, `--debug`, `--config`,
-  `--output`, `--version`); root `main.py` is a thin launcher; `__init__.py` exposes `__version__`.
+- `__main__.py` — `InvisibleFriendApp` + `parse_args()` / `main()` (`--send`, `--debug` | `--hide-draw`,
+  `--config`, `--output`, `--version`); root `main.py` is a thin launcher; `__init__.py` exposes
+  `__version__`.
 
 ## Conventions
 - Read config from the `Config` object, not scattered `os.getenv`. New code logs via
