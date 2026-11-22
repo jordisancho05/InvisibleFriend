@@ -156,6 +156,15 @@ Generates the assignments, prints them to the console, saves them to
 python main.py --send
 ```
 
+### If you take part yourself
+```bash
+python main.py --send --hide-draw
+```
+
+The console shows the progress and the delivery summary, but not who was drawn for whom.
+`output/assignments.json` still records the full draw — it is the backup if an email fails — so
+leave it unopened, or ask someone who is not taking part to look it up.
+
 ### Available options
 ```bash
 python main.py --help
@@ -165,6 +174,7 @@ python main.py --help
 |------|-------------|---------|
 | `--send` | Actually sends the emails | disabled (simulates) |
 | `--debug` | Also records the draw itself in the log file | disabled |
+| `--hide-draw` | Does not print who was drawn for whom (the JSON still records it). Cannot be combined with `--debug` | disabled |
 | `--config PATH` | Path to the participants YAML | `config/settings.yaml` |
 | `--output PATH` | Where to save the assignments JSON | `output/assignments.json` |
 | `--version` | Show the version | — |
@@ -186,8 +196,9 @@ game:
 python main.py --debug     # adds: DEBUG - Assignment: Alice -> Bob
 ```
 
-The console output and `output/assignments.json` always show the full draw — that is what you run
-the app to see. The log file is the one that persists silently, so that is the one that stays quiet.
+By default the console output and `output/assignments.json` show the full draw — that is what you
+run the app to see. The log file is the one that persists silently, so that is the one that stays
+quiet. When the organiser is a participant too, `--hide-draw` takes the draw off the console as well.
 
 > `--send` is also the only thing that reads `MAILSENDER` / `PASSWORD`. A simulated run works on a
 > fresh clone with no `.env` at all.

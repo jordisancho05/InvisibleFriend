@@ -3,6 +3,7 @@
     python -m invisible_friend            # simulate the delivery (default)
     python -m invisible_friend --send     # actually send the emails
     python -m invisible_friend --debug    # also record the draw in the log
+    python -m invisible_friend --send --hide-draw  # send without printing the draw
 
 Real delivery is always explicit: without `--send` no SMTP connection is opened,
 and no credential is read.
@@ -125,13 +126,17 @@ class InvisibleFriendApp:
 
         return email_service.send_assignments(formatted, emails, simulate=simulate)
 
-    def run(self, send: bool = False, output_path: Path = DEFAULT_OUTPUT) -> None:
+    def run(
+        self, send: bool = False, output_path: Path = DEFAULT_OUTPUT, hide_draw: bool = False
+    ) -> None:
         """
         Run the full application flow.
 
         Args:
             send: If True, actually send the emails; otherwise only simulate
             output_path: Where to save the assignments JSON
+            hide_draw: If True, do not print who was drawn for whom. The JSON at
+                `output_path` still records it, as the backup for a failed email
         """
         logger.info("=" * 50)
         logger.info("STARTING FULL SECRET SANTA FLOW")
@@ -140,8 +145,15 @@ class InvisibleFriendApp:
         logger.info("STEP 1: Generating assignments...")
         assignments = self.generate_assignments()
 
-        logger.info("STEP 2: Showing assignments...")
-        self.show_assignments(assignments)
+        if hide_draw:
+            # For an organiser who also takes part: the console says how big the
+            # draw is, never what it is.
+            logger.info(
+                "STEP 2: Draw hidden (--hide-draw): %s assignments not shown", len(assignments)
+            )
+        else:
+            logger.info("STEP 2: Showing assignments...")
+            self.show_assignments(assignments)
 
         logger.info("STEP 3: Saving assignments...")
         self.save_assignments(assignments, output_path)
@@ -165,7 +177,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         argv: Arguments to parse (None = sys.argv)
 
     Returns:
-        Namespace with send, config and output
+        Namespace with send, debug, hide_draw, config and output
     """
     parser = argparse.ArgumentParser(
         prog="invisible-friend",
@@ -176,11 +188,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="actually send the emails (by default it only simulates)",
     )
-    parser.add_argument(
+    # --debug echoes the draw to the console as well as the log file, so it cannot
+    # be combined with the flag whose whole job is keeping the draw off the console.
+    privacy = parser.add_mutually_exclusive_group()
+    privacy.add_argument(
         "--debug",
         action="store_true",
         help="record the draw itself in the log file (off by default, so a normal run "
         "logs only that a message went out, never who was drawn for whom)",
+    )
+    privacy.add_argument(
+        "--hide-draw",
+        action="store_true",
+        help="do not print who was drawn for whom, for an organiser who also takes part "
+        "(the --output JSON still records the draw)",
     )
     parser.add_argument(
         "--config",
@@ -214,7 +235,7 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging(debug=args.debug)
     try:
         app = InvisibleFriendApp(args.config)
-        app.run(send=args.send, output_path=args.output)
+        app.run(send=args.send, output_path=args.output, hide_draw=args.hide_draw)
     except InvisibleFriendError as e:
         logger.error("Error: %s", e)
         print(f"❌ Error: {e}")

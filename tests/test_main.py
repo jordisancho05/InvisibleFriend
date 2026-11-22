@@ -4,11 +4,13 @@ The critical thing here is that real delivery is **opt-in**: the default run
 must never touch the network.
 """
 
+import json
 import logging
 import os
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -131,6 +133,7 @@ def test_parse_args_defaults_to_not_sending() -> None:
 
     assert args.send is False
     assert args.debug is False
+    assert args.hide_draw is False
     assert args.config == Path("config/settings.yaml")
     assert args.output == Path("output/assignments.json")
 
@@ -161,6 +164,53 @@ def test_without_debug_the_log_stays_at_info(
     main(["--config", str(environment), "--output", str(environment.parent / "o.json")])
 
     assert logging.getLogger(PACKAGE_LOGGER).level == logging.INFO
+
+
+def test_the_draw_is_printed_by_default(
+    environment: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Without --hide-draw the console still shows every giver next to their receiver."""
+    output = environment.parent / "out.json"
+
+    assert main(["--config", str(environment), "--output", str(output)]) == 0
+
+    draw = json.loads(output.read_text(encoding="utf-8"))["assignments"]
+    console = capsys.readouterr().out.splitlines()
+    for giver, receiver in draw.items():
+        assert any(giver in line and receiver in line for line in console)
+
+
+@pytest.mark.parametrize("send", [False, True], ids=["simulated", "sent"])
+def test_hide_draw_keeps_the_draw_off_the_console(
+    environment: Path, capsys: pytest.CaptureFixture[str], send: bool
+) -> None:
+    """An organiser who also takes part can run it without learning who got whom.
+
+    The JSON still records the whole draw: it is the backup if an email fails.
+    """
+    output = environment.parent / "out.json"
+    argv = ["--hide-draw", "--config", str(environment), "--output", str(output)]
+
+    with patch("smtplib.SMTP_SSL") as mock_smtp:
+        code = main(["--send", *argv] if send else argv)
+
+    assert code == 0
+    assert mock_smtp.called is send
+    draw = json.loads(output.read_text(encoding="utf-8"))["assignments"]
+    assert len(draw) == 3, "the JSON still holds the full draw"
+    console = capsys.readouterr().out.splitlines()
+    for giver, receiver in draw.items():
+        assert not any(giver in line and receiver in line for line in console), (
+            f"{giver} and their receiver shared a console line"
+        )
+
+
+def test_hide_draw_cannot_be_combined_with_debug(capsys: pytest.CaptureFixture[str]) -> None:
+    """--debug echoes the draw to the console, which is exactly what --hide-draw prevents."""
+    with pytest.raises(SystemExit):
+        parse_args(["--hide-draw", "--debug"])
+
+    assert "not allowed with" in capsys.readouterr().err
 
 
 def test_running_as_a_module_still_logs_the_flow(tmp_path: Path) -> None:
@@ -199,10 +249,11 @@ def test_running_as_a_module_still_logs_the_flow(tmp_path: Path) -> None:
 
 
 def test_parse_args_accepts_the_flags() -> None:
-    """--send, --config and --output are parsed as expected."""
-    args = parse_args(["--send", "--config", "other.yaml", "--output", "out.json"])
+    """--send, --hide-draw, --config and --output are parsed as expected."""
+    args = parse_args(["--send", "--hide-draw", "--config", "other.yaml", "--output", "out.json"])
 
     assert args.send is True
+    assert args.hide_draw is True
     assert args.config == Path("other.yaml")
     assert args.output == Path("out.json")
 

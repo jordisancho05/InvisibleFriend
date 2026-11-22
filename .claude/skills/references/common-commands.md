@@ -21,6 +21,7 @@ Copy-Item config\settings.example.yaml config\settings.yaml   # then fill partic
 python main.py                             # generate → print → save JSON → SIMULATE the emails
 python main.py --send                      # actually send over SMTP
 python main.py --debug                     # also record the draw itself in the log file
+python main.py --send --hide-draw          # send without printing who got whom
 python main.py --config other.yaml --output out.json
 python main.py --help                      # all flags
 # equivalent entry points:
@@ -32,6 +33,9 @@ invisible-friend                           # console script (after pip install -
 - Output lands in `output/assignments.json`; logs in `logs/invisible_friend.log` (rotating).
 - **The log never records who was drawn for whom unless you pass `--debug`.** A normal run logs at
   most `Email sent to <name>`. Use `--debug` to review a past draw, and remember the file keeps it.
+- **Taking part yourself?** `--send --hide-draw` keeps the draw off the console too. The JSON in
+  `output/` still records it (the backup for a failed email), so leave it unopened. `--hide-draw`
+  and `--debug` are mutually exclusive: `--debug` echoes the draw to the console.
 
 ## Test
 ```powershell

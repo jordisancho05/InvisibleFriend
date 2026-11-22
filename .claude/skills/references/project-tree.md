@@ -7,7 +7,7 @@
 ```text
 Pinvisiblefriend/
 ├── pyproject.toml            # Metadata + version (SemVer) + deps + tool config (ruff, mypy, pytest)
-├── main.py                   # Thin launcher: `python main.py [--send] [--config P] [--output P]`
+├── main.py                   # Thin launcher: `python main.py [--send] [--debug | --hide-draw] [--config P] [--output P]`
 ├── CHANGELOG.md              # Keep a Changelog format
 ├── README.md                 # User-facing docs (Spanish)
 ├── CLAUDE.md                 # Agent guide; mirrored by .github/copilot-instructions.md
