@@ -42,10 +42,11 @@ ruff check . ; mypy src           # lint + types
 ```
 
 ## Architecture (`src/invisible_friend/`)
-- `config.py` — `Config`: root `.env` + YAML → `ConfigData`; missing/malformed (and a participant
-  without a `name`) → `ConfigError`.
+- `config.py` — `Config`: root `.env` + YAML → `ConfigData` (the optional `gift` section →
+  `GiftDetails`); missing/malformed (and a participant without a `name`) → `ConfigError`.
 - `models.py` — `Person` (mandatory valid email; equality/hash **by name**), `Assignment`
-  (`giver`/`receiver`, no self-assignment), `ConfigData`.
+  (`giver`/`receiver`, no self-assignment), `GiftDetails` (exchange date + min / optional max
+  budget, validated), `ConfigData`.
 - `exceptions.py` — `InvisibleFriendError` + `ConfigError` / `EmailError` / `ValidationError` /
   `AssignmentError`.
 - `validators.py` — `PairValidator`: symmetric restrictions (`frozenset`), `is_valid_pair()`,
@@ -55,7 +56,8 @@ ruff check . ; mypy src           # lint + types
 - `services/email_service.py` — `SMTP_SSL` send; `send_assignments()` → `(successful, failed)`; a
   participant with no email is a warning + a failure, not an exception. One SMTP session per batch;
   INFO names the recipient, never the receiver.
-- `templates/email_template.py` — `SUBJECT` + `render_body()` (Spanish copy, plain text only).
+- `templates/email_template.py` — `SUBJECT` + `render_body(name, assigned, gift)` (Spanish copy,
+  plain text only; date and budget line from `GiftDetails`).
 - `utils/` — `get_logger(name)` (per-module) + `configure_logging(debug=...)`, which attaches the
   UTF-8 console and rotating file handlers to the package logger; and `FileHandler`
   (`save_json` / `load_json` / `save_assignments`, UTF-8).

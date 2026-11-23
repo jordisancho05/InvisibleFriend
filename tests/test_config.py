@@ -6,6 +6,7 @@ import pytest
 
 from invisible_friend.config import Config
 from invisible_friend.exceptions import ConfigError
+from invisible_friend.models import GiftDetails
 
 MINIMAL_YAML = """
 app:
@@ -266,3 +267,59 @@ def test_missing_secret_raises_config_error(yaml_path: Path, variable: str) -> N
 
     with pytest.raises(ConfigError, match=variable):
         _ = config.email_sender if variable == "MAILSENDER" else config.email_password
+
+
+def test_gift_defaults_when_the_section_is_missing(yaml_path: Path) -> None:
+    """A settings.yaml written before the gift section keeps the previous email."""
+    assert Config(yaml_path).gift == GiftDetails()
+
+
+def test_parses_the_gift_section(yaml_path: Path) -> None:
+    """The exchange date and both budgets come from the YAML."""
+    yaml_path.write_text(
+        MINIMAL_YAML
+        + "gift:\n  exchange_day: 6\n  exchange_month: 1\n  min_budget: 20\n  max_budget: 40\n",
+        encoding="utf-8",
+    )
+
+    assert Config(yaml_path).gift == GiftDetails(
+        exchange_day=6, exchange_month=1, min_budget=20, max_budget=40
+    )
+
+
+def test_empty_gift_values_fall_back_to_the_defaults(yaml_path: Path) -> None:
+    """A key left empty counts as not set: an empty max_budget means no maximum."""
+    yaml_path.write_text(MINIMAL_YAML + "gift:\n  min_budget: 25\n  max_budget:\n", "utf-8")
+
+    assert Config(yaml_path).gift == GiftDetails(min_budget=25, max_budget=None)
+
+
+@pytest.mark.parametrize(
+    ("gift", "match"),
+    [
+        ('  min_budget: "treinta"\n', "gift.min_budget"),
+        ("  min_budget: 30€\n", "gift.min_budget"),
+        ("  exchange_day: 31\n  exchange_month: 2\n", "gift"),
+        ("  min_budget: 30\n  max_budget: 20\n", "gift"),
+        ("  max_budge: 50\n", "max_budge"),
+    ],
+    ids=["budget as word", "budget with symbol", "31 February", "max below min", "typo in a key"],
+)
+def test_invalid_gift_section_raises_config_error(yaml_path: Path, gift: str, match: str) -> None:
+    """A bad gift section stops the run before a single email is written.
+
+    An unknown key is rejected too: a typo such as `max_budge` would otherwise
+    drop the maximum from every email without a word.
+    """
+    yaml_path.write_text(MINIMAL_YAML + f"gift:\n{gift}", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=match):
+        Config(yaml_path)
+
+
+def test_gift_must_be_a_section(yaml_path: Path) -> None:
+    """`gift: 30` is not a section of keys."""
+    yaml_path.write_text(MINIMAL_YAML + "gift: 30\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="gift"):
+        Config(yaml_path)

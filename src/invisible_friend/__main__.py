@@ -62,13 +62,16 @@ class InvisibleFriendApp:
             An EmailService, without credentials when simulating
         """
         if simulate:
-            return EmailService(self.config.smtp_server, self.config.smtp_port, "", "")
+            return EmailService(
+                self.config.smtp_server, self.config.smtp_port, "", "", gift=self.config.gift
+            )
 
         return EmailService(
             self.config.smtp_server,
             self.config.smtp_port,
             self.config.email_sender,
             self.config.email_password,
+            gift=self.config.gift,
         )
 
     def generate_assignments(self) -> dict[Person, Person]:

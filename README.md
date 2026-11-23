@@ -104,9 +104,18 @@ They are generated at [myaccount.google.com/apppasswords](https://myaccount.goog
 | `email.smtp_port` | SMTP port (SSL) | `465` |
 | `participants` | List of `{name, email}` participants | — |
 | `restrictions` | Pairs `[A, B]` that must not touch | `[]` |
+| `gift.exchange_day` | Day the gifts are exchanged | `24` |
+| `gift.exchange_month` | Month of the exchange, as a number | `12` |
+| `gift.min_budget` | Minimum budget per gift, in whole euros | `30` |
+| `gift.max_budget` | Optional maximum budget, in whole euros | empty (no maximum) |
 
 Restrictions are **bidirectional**: `["Alice", "Bob"]` prevents both Alice
 giving to Bob and the other way around.
+
+The `gift` section fills the reminder lines of every email. Leave a value empty, or delete its
+line, to keep the default. With only a minimum the email states the minimum; with `max_budget` it
+gives the range, and a maximum equal to the minimum reads as a single amount. An impossible date, a
+maximum below the minimum or an unknown key in `gift` stops the run before anything is sent.
 
 ### 🔐 Privacy Structure
 

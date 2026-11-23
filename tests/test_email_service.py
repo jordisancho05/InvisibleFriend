@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from invisible_friend.exceptions import EmailError
+from invisible_friend.models import GiftDetails
 from invisible_friend.services.email_service import EmailService
 from invisible_friend.utils.logger import PACKAGE_LOGGER
 
@@ -63,6 +64,22 @@ def test_send_assignment_uses_the_template(email_service: EmailService) -> None:
     body = sent_email.get_content()
     assert "Alice" in body
     assert "Bob" in body
+
+
+def test_send_assignment_uses_the_configured_gift_details() -> None:
+    """The body carries the date and budget the service was built with."""
+    service = EmailService(
+        "smtp.example.com",
+        465,
+        "sender@example.com",
+        "app-password",
+        gift=GiftDetails(min_budget=20, max_budget=40),
+    )
+
+    with patch.object(service, "send_email", return_value=True) as mock_send:
+        service.send_assignment("recipient@example.com", "Alice", "Bob")
+
+    assert "entre 20 € y 40 €" in mock_send.call_args.args[1].get_content()
 
 
 def test_the_plain_text_fallback_is_gone(email_service: EmailService) -> None:

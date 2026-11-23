@@ -1,14 +1,18 @@
 """Centralized configuration manager."""
 
 import os
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
 import yaml
 from dotenv import find_dotenv, load_dotenv
 
-from invisible_friend.exceptions import ConfigError
-from invisible_friend.models import ConfigData, Person
+from invisible_friend.exceptions import ConfigError, ValidationError
+from invisible_friend.models import ConfigData, GiftDetails, Person
+
+# The keys of the `gift` section are exactly the fields of GiftDetails.
+_GIFT_KEYS = tuple(f.name for f in fields(GiftDetails))
 
 
 class Config:
@@ -70,6 +74,9 @@ class Config:
         self._config.smtp_server = str(email_config.get("smtp_server", "smtp.gmail.com"))
         self._config.smtp_port = self._as_int(email_config.get("smtp_port", 465), "email.smtp_port")
 
+        # Gift details printed in every participant's email.
+        self._config.gift = self._build_gift(data.get("gift"))
+
         # Participants.
         participants_data = data.get("participants", [])
         if not isinstance(participants_data, list):
@@ -94,6 +101,31 @@ class Config:
             return int(value)
         except ValueError as e:
             raise ConfigError(f"'{key}' must be a whole number, got: {value!r}") from e
+
+    @staticmethod
+    def _build_gift(raw: Any) -> GiftDetails:
+        """Build the gift details, falling back to the defaults for anything left out.
+
+        A key left empty counts as left out, so `max_budget:` with no value means
+        "no maximum". An unknown key is rejected rather than ignored: a typo such
+        as `max_budge` would otherwise drop the maximum from every email.
+        """
+        if raw is None:
+            return GiftDetails()
+        if not isinstance(raw, dict):
+            raise ConfigError(f"'gift' must be a section with the keys {', '.join(_GIFT_KEYS)}")
+        unknown = sorted(str(key) for key in raw if key not in _GIFT_KEYS)
+        if unknown:
+            raise ConfigError(f"Unknown key(s) in 'gift': {', '.join(unknown)}")
+        values = {
+            key: Config._as_int(raw[key], f"gift.{key}")
+            for key in _GIFT_KEYS
+            if raw.get(key) is not None
+        }
+        try:
+            return GiftDetails(**values)
+        except ValidationError as e:
+            raise ConfigError(f"Invalid 'gift' section: {e}") from e
 
     @staticmethod
     def _build_person(entry: Any, position: int) -> Person:
@@ -180,6 +212,11 @@ class Config:
     def smtp_port(self) -> int:
         """Return the SMTP port."""
         return self._config.smtp_port
+
+    @property
+    def gift(self) -> GiftDetails:
+        """Return when the gifts are exchanged and their budget."""
+        return self._config.gift
 
     @property
     def email_sender(self) -> str:

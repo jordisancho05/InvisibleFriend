@@ -12,6 +12,7 @@ from contextlib import ExitStack, contextmanager
 from email.message import EmailMessage
 
 from invisible_friend.exceptions import EmailError
+from invisible_friend.models import GiftDetails
 from invisible_friend.templates.email_template import EmailTemplate
 from invisible_friend.utils.logger import get_logger
 
@@ -21,7 +22,14 @@ logger = get_logger(__name__)
 class EmailService:
     """Handles composing and sending the assignment emails."""
 
-    def __init__(self, smtp_server: str, smtp_port: int, email_sender: str, password: str) -> None:
+    def __init__(
+        self,
+        smtp_server: str,
+        smtp_port: int,
+        email_sender: str,
+        password: str,
+        gift: GiftDetails | None = None,
+    ) -> None:
         """
         Initialize the email service.
 
@@ -30,11 +38,13 @@ class EmailService:
             smtp_port: SMTP port
             email_sender: Sender email address
             password: Sender password
+            gift: Exchange date and budget for the email body; the defaults when omitted
         """
         self.smtp_server = smtp_server
         self.smtp_port = smtp_port
         self.email_sender = email_sender
         self.password = password
+        self.gift = gift if gift is not None else GiftDetails()
 
     def create_email(self, recipient: str, subject: str, body: str) -> EmailMessage:
         """
@@ -129,7 +139,7 @@ class EmailService:
         Raises:
             EmailError: If sending fails (raised by `send_email`, not re-wrapped)
         """
-        body = EmailTemplate.render_body(person_name, assigned_person)
+        body = EmailTemplate.render_body(person_name, assigned_person, self.gift)
         email = self.create_email(recipient, EmailTemplate.SUBJECT, body)
         return self.send_email(recipient, email, connection)
 

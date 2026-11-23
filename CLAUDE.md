@@ -54,11 +54,13 @@ copy them from `.env.example` and `config/settings.example.yaml`. Full commands:
 
 ## Architecture (`src/invisible_friend/`)
 - `config.py` — `Config`: loads the root `.env` via `find_dotenv(usecwd=True)`, parses the YAML into
-  `ConfigData`, exposes `participants` / `restrictions` / `max_attempts` / `smtp_*` as properties and
-  `email_sender` / `email_password` from env. Anything missing or malformed → `ConfigError`
-  (a participant entry with no `name` included).
+  `ConfigData`, exposes `participants` / `restrictions` / `max_attempts` / `smtp_*` / `gift` as
+  properties and `email_sender` / `email_password` from env. Anything missing or malformed →
+  `ConfigError` (a participant entry with no `name` included).
 - `models.py` — `Person` (validates name + mandatory well-formed email; hashed and compared **by name
-  only**), `Assignment` (`giver`/`receiver`, rejects self-assignment), `ConfigData`.
+  only**), `Assignment` (`giver`/`receiver`, rejects self-assignment), `GiftDetails` (frozen:
+  exchange day/month, `min_budget` and optional `max_budget` in whole euros; rejects an impossible
+  date and a maximum below the minimum), `ConfigData`.
 - `exceptions.py` — `InvisibleFriendError` base + `ConfigError`, `EmailError`, `ValidationError`,
   `AssignmentError`.
 - `validators.py` — `PairValidator`: restrictions as `set[frozenset[str]]` so `A-B` == `B-A`;
@@ -71,8 +73,9 @@ copy them from `.env.example` and `config/settings.example.yaml`. Full commands:
   `send_assignments()` returns `(successful, failed)`. A participant with no email is a logged
   warning + a failure count, never an exception. INFO names only the recipient (`Email sent to X`),
   never the receiver.
-- `templates/email_template.py` — `EmailTemplate`: `SUBJECT` and `render_body()` (Spanish copy,
-  plain text only).
+- `templates/email_template.py` — `EmailTemplate`: `SUBJECT` and `render_body(name, assigned, gift)`
+  (Spanish copy, plain text only). The date and the budget line — minimum alone, single amount or
+  range — come from the `GiftDetails` that `EmailService` is built with (`Config.gift`).
 - `utils/logger.py` — `get_logger(name)` is a plain per-module `logging.getLogger`; the handlers live
   on the `invisible_friend` package logger and are attached once by `configure_logging(debug=...)`,
   which `main()` calls first. UTF-8 console + rotating `logs/invisible_friend.log`, both at INFO, or
@@ -94,8 +97,9 @@ copy them from `.env.example` and `config/settings.example.yaml`. Full commands:
   `disallow_any_generics`, so a bare `dict` is rejected). Raise the project's own exceptions, never a
   bare `Exception`; chain with `raise ... from e`.
 - Log lazily: `logger.info("Saved to %s", path)`, not an f-string — ruff's `G` ruleset enforces it.
-- Config is validated at load time: duplicate participant names, malformed restriction pairs and
-  non-numeric `max_attempts` / `smtp_port` all raise `ConfigError` rather than failing later.
+- Config is validated at load time: duplicate participant names, malformed restriction pairs,
+  non-numeric `max_attempts` / `smtp_port`, and a `gift` section with an unknown key, an impossible
+  date or a maximum below the minimum all raise `ConfigError` rather than failing later.
 - Layering points downward only: `models`/`validators` never import a service; no service imports
   `__main__`.
 - **Domain invariants**: the assignment is a single cycle (no fixed points, no sub-cycles), everyone

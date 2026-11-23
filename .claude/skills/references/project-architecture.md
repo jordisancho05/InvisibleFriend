@@ -13,12 +13,18 @@ simulates.
 - `config.py` — `Config` class. Loads the root `.env` via `find_dotenv(usecwd=True)` (searches
   upward from the CWD; existing env vars win and are never overwritten; a missing `.env` is not an
   error), then parses the YAML into a `ConfigData`. Exposes `participants`, `restrictions`,
-  `max_attempts`, `smtp_server`, `smtp_port` as properties, plus `email_sender` / `email_password`
-  read from env (`MAILSENDER` / `PASSWORD`) and raising `ConfigError` when missing. A missing or
-  invalid YAML — or a participant entry without a `name` — raises `ConfigError`.
+  `max_attempts`, `smtp_server`, `smtp_port`, `gift` as properties, plus `email_sender` /
+  `email_password` read from env (`MAILSENDER` / `PASSWORD`) and raising `ConfigError` when missing.
+  A missing or invalid YAML — or a participant entry without a `name` — raises `ConfigError`. The
+  optional `gift` section becomes a `GiftDetails`: a missing or empty key keeps its default, while an
+  unknown key (a typo would silently drop it from every email) or an invalid value raises
+  `ConfigError`.
 - `models.py` — `Person` (dataclass; validates non-empty name and a mandatory well-formed email in
   `__post_init__`, hashed/compared **by name only**), `Assignment` (`giver`/`receiver`, rejects
-  self-assignment) and `ConfigData` (config container with defaults).
+  self-assignment), `GiftDetails` (frozen; `exchange_day` / `exchange_month` default to 24/12,
+  `min_budget` to 30 and `max_budget` to `None`, in whole euros; rejects an impossible date — 29
+  February is allowed, no year is configured — a minimum below 1 and a maximum below the minimum)
+  and `ConfigData` (config container with defaults).
 - `exceptions.py` — `InvisibleFriendError` base + `ConfigError`, `EmailError`, `ValidationError`,
   `AssignmentError`. Every failure raised by the package derives from the base.
 - `validators.py` — `PairValidator`. Holds restrictions as a `set[frozenset[str]]` so lookups are
@@ -34,13 +40,16 @@ simulates.
   `_session()` yields **one authenticated `smtplib.SMTP_SSL`** (with an
   `ssl.create_default_context()`) that the whole batch reuses — authenticating once per recipient is
   what makes Gmail flag the account mid-delivery. `send_email()` takes an optional live connection,
-  `send_assignment()` renders the template and lets `EmailError` propagate unwrapped, and
+  `send_assignment()` renders the template with the service's `GiftDetails` (constructor argument
+  `gift`, the defaults when omitted) and lets `EmailError` propagate unwrapped, and
   `send_assignments()` loops over the assignments returning `(successful, failed)`.
   **`simulate=True` skips the network entirely** (it enters no session at all). A participant without
   an email is logged as a warning and counted as failed, not raised. INFO names only the recipient
   (`Email sent to X`); the receiver never appears above DEBUG.
-- `templates/email_template.py` — `EmailTemplate`: `SUBJECT` plus `render_body()` (plain text; the
-  lines are assembled so the source indentation never reaches the inbox). All the copy is **Spanish**
+- `templates/email_template.py` — `EmailTemplate`: `SUBJECT` plus `render_body(name, assigned,
+  gift)` (plain text; the lines are assembled so the source indentation never reaches the inbox).
+  The exchange date (day + Spanish month name) and the budget line come from `GiftDetails`: the
+  minimum alone, a single amount when minimum == maximum, or the range. All the copy is **Spanish**
   and user-facing (the only Spanish left in the code).
 - `utils/logger.py` — `get_logger(name)` is a plain per-module `logging.getLogger`. The handlers (a
   UTF-8 console and a **rotating** UTF-8 file writing `logs/invisible_friend.log`) live on the
