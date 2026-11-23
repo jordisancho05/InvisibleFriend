@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without the organiser learning who got whom. `output/assignments.json` still records the full draw
   as the backup for a failed email. Mutually exclusive with `--debug`, which echoes the draw to the
   console.
+- **`gift` section in `settings.yaml`**: `exchange_day`, `exchange_month`, `min_budget` and an
+  optional `max_budget`, in whole euros. It is validated at load time into a `GiftDetails`: an
+  impossible date, a maximum below the minimum or an unknown key (a typo would silently drop it)
+  raises `ConfigError`. Left out, it defaults to 24 December and a 30 € minimum.
+
+### Changed
+- The participant email now says when the gift is exchanged and what it should cost: the minimum
+  alone, the range when `max_budget` is set, or a single amount when both are equal.
 
 ## [1.1.0] - 2026-07-24
 

@@ -1,5 +1,6 @@
 """Data models for Invisible Friend."""
 
+import calendar
 import re
 from dataclasses import dataclass, field
 
@@ -66,6 +67,42 @@ class Assignment:
         return f"{self.giver.name} → {self.receiver.name}"
 
 
+# No year is configured, so the exchange day is checked against a leap year:
+# 29 February is accepted.
+_LEAP_YEAR = 2024
+
+
+@dataclass(frozen=True)
+class GiftDetails:
+    """When the gifts are exchanged and what they should cost, in whole euros.
+
+    The defaults are what the email said before these became configurable.
+    `max_budget=None` means there is only a minimum.
+    """
+
+    exchange_day: int = 24
+    exchange_month: int = 12
+    min_budget: int = 30
+    max_budget: int | None = None
+
+    def __post_init__(self) -> None:
+        """Reject a date that does not exist and a budget range upside down."""
+        if not 1 <= self.exchange_month <= 12:
+            raise ValidationError(
+                f"The exchange month must be between 1 and 12, got {self.exchange_month}"
+            )
+        last_day = calendar.monthrange(_LEAP_YEAR, self.exchange_month)[1]
+        if not 1 <= self.exchange_day <= last_day:
+            raise ValidationError(f"Month {self.exchange_month} has no day {self.exchange_day}")
+        if self.min_budget < 1:
+            raise ValidationError(f"The minimum budget must be at least 1, got {self.min_budget}")
+        if self.max_budget is not None and self.max_budget < self.min_budget:
+            raise ValidationError(
+                f"The maximum budget ({self.max_budget}) cannot be lower than "
+                f"the minimum ({self.min_budget})"
+            )
+
+
 @dataclass
 class ConfigData:
     """Container for the parsed configuration."""
@@ -75,3 +112,4 @@ class ConfigData:
     max_attempts: int = 100
     smtp_server: str = "smtp.gmail.com"
     smtp_port: int = 465
+    gift: GiftDetails = field(default_factory=GiftDetails)

@@ -33,7 +33,8 @@
 
 ## Change the email content / template
 1. `templates/email_template.py` → `SUBJECT` and `render_body()` (plain text). Copy stays in
-   **Spanish** (the only Spanish in the code).
+   **Spanish** (the only Spanish in the code). The exchange date and the budget are not copy to edit
+   here: they come from the `gift` section of the YAML, parsed into `GiftDetails` (`models.py`).
 2. `services/email_service.py` → only if the *sending* changes (headers, MIME parts, HTML alternative);
    the wording never lives in the service.
 3. Test: `tests/test_email_service.py` (or `tests/test_email_template.py`) → assert the rendered

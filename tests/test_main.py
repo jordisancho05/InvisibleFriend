@@ -9,6 +9,7 @@ import logging
 import os
 import subprocess
 import sys
+from email import message_from_string, policy
 from pathlib import Path
 from unittest.mock import patch
 
@@ -211,6 +212,26 @@ def test_hide_draw_cannot_be_combined_with_debug(capsys: pytest.CaptureFixture[s
         parse_args(["--hide-draw", "--debug"])
 
     assert "not allowed with" in capsys.readouterr().err
+
+
+def test_the_configured_gift_details_reach_the_email(environment: Path) -> None:
+    """The date and budget in settings.yaml are what the participants read."""
+    environment.write_text(
+        MINIMAL_YAML
+        + "gift:\n  exchange_day: 6\n  exchange_month: 1\n  min_budget: 20\n  max_budget: 40\n",
+        encoding="utf-8",
+    )
+    output = environment.parent / "out.json"
+
+    with patch("smtplib.SMTP_SSL") as mock_smtp:
+        code = main(["--send", "--config", str(environment), "--output", str(output)])
+
+    assert code == 0
+    connection = mock_smtp.return_value.__enter__.return_value
+    raw = connection.sendmail.call_args_list[0].args[2]
+    body = message_from_string(raw, policy=policy.default).get_content()
+    assert "El regalo se entrega el día 6 de enero" in body
+    assert "entre 20 € y 40 €" in body
 
 
 def test_running_as_a_module_still_logs_the_flow(tmp_path: Path) -> None:

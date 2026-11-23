@@ -22,14 +22,14 @@ Pinvisiblefriend/
 │       ├── __init__.py       # __version__ from installed metadata
 │       ├── __main__.py       # InvisibleFriendApp + parse_args() + main()
 │       ├── config.py         # Config: root .env + YAML → ConfigData
-│       ├── models.py         # Person / Assignment / ConfigData dataclasses
+│       ├── models.py         # Person / Assignment / GiftDetails / ConfigData dataclasses
 │       ├── exceptions.py     # InvisibleFriendError + 4 subclasses
 │       ├── validators.py     # PairValidator (symmetric frozenset restrictions)
 │       ├── services/
 │       │   ├── secret_santa.py   # SecretSantaService: cyclic assignment + retries
 │       │   └── email_service.py  # EmailService: SMTP_SSL send + simulate mode
 │       ├── templates/
-│       │   └── email_template.py # EmailTemplate: Spanish body (text + HTML)
+│       │   └── email_template.py # EmailTemplate: Spanish body (plain text), date/budget from GiftDetails
 │       └── utils/
 │           ├── logger.py         # get_logger() per module + configure_logging(debug=...)
 │           └── file_handler.py   # FileHandler: JSON save/load

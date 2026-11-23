@@ -17,6 +17,16 @@ email:
   smtp_server: "smtp.gmail.com"
   smtp_port: 465
 
+# Gift details shown in every participant's email (amounts in whole euros).
+# Leave a value empty, or delete its line, to use the default shown here.
+# An impossible date, a maximum below the minimum or an unknown key is
+# rejected on startup with a ConfigError.
+gift:
+  exchange_day: 24      # day of the month the gifts are exchanged
+  exchange_month: 12    # month of the exchange, as a number (12 = December)
+  min_budget: 30        # minimum budget per gift
+  max_budget:           # OPTIONAL maximum, e.g. 50: with it the email gives the range
+
 # List of participants
 # ⚠️ IMPORTANT: the email is REQUIRED for every participant, and the names must
 # be UNIQUE — participants are identified by name, so a repeated one is

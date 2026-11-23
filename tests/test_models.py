@@ -1,9 +1,9 @@
-"""Tests for the domain models: Person, Assignment and ConfigData."""
+"""Tests for the domain models: Person, Assignment, GiftDetails and ConfigData."""
 
 import pytest
 
 from invisible_friend.exceptions import ValidationError
-from invisible_friend.models import Assignment, ConfigData, Person
+from invisible_friend.models import Assignment, ConfigData, GiftDetails, Person
 
 
 def test_valid_person_keeps_its_data() -> None:
@@ -134,3 +134,46 @@ def test_config_data_has_sensible_defaults() -> None:
     assert data.max_attempts == 100
     assert data.smtp_server == "smtp.gmail.com"
     assert data.smtp_port == 465
+    assert data.gift == GiftDetails()
+
+
+def test_gift_details_default_to_24_december_and_a_30_minimum() -> None:
+    """Without a gift section the email keeps the details it already had."""
+    gift = GiftDetails()
+
+    assert (gift.exchange_day, gift.exchange_month) == (24, 12)
+    assert gift.min_budget == 30
+    assert gift.max_budget is None
+
+
+@pytest.mark.parametrize(
+    ("day", "month"),
+    [(24, 0), (24, 13), (0, 12), (32, 12), (31, 4), (30, 2)],
+    ids=["month 0", "month 13", "day 0", "day 32", "31 April", "30 February"],
+)
+def test_gift_details_reject_a_date_that_does_not_exist(day: int, month: int) -> None:
+    """An impossible exchange date fails at load time, not in every inbox."""
+    with pytest.raises(ValidationError):
+        GiftDetails(exchange_day=day, exchange_month=month)
+
+
+def test_gift_details_accept_29_february() -> None:
+    """No year is configured, so a leap day is a valid exchange day."""
+    assert GiftDetails(exchange_day=29, exchange_month=2).exchange_day == 29
+
+
+def test_gift_details_reject_a_minimum_below_one() -> None:
+    """A minimum of zero would print a budget that means nothing."""
+    with pytest.raises(ValidationError, match="minimum"):
+        GiftDetails(min_budget=0)
+
+
+def test_gift_details_reject_a_maximum_below_the_minimum() -> None:
+    """A range upside down is a typo, not a budget."""
+    with pytest.raises(ValidationError, match="maximum"):
+        GiftDetails(min_budget=30, max_budget=20)
+
+
+def test_gift_details_accept_a_maximum_equal_to_the_minimum() -> None:
+    """Minimum == maximum is a fixed budget, a legitimate choice."""
+    assert GiftDetails(min_budget=30, max_budget=30).max_budget == 30
